@@ -174,9 +174,9 @@ if(DIXONRES_WINDOWS_CROSS AND NOT DIXONRES_USE_BUNDLED_DEPS)
   endwhile()
   
   # Set up FLINT_ROOT from downloaded package if available
-  if(ALL_FETCHED_PACKAGES AND "mingw-w64-ucrt-x86_64-flint" IN_LIST ALL_FETCHED_PACKAGES)
+  if(ALL_FETCHED_PACKAGES AND "mingw-w64-x86_64-flint" IN_LIST ALL_FETCHED_PACKAGES)
     if(NOT FLINT_ROOT)
-      set(FLINT_ROOT "${mingw-w64-ucrt-x86_64-flint_SOURCE_DIR}/ucrt64" CACHE PATH "FLINT root from MSYS2" FORCE)
+      set(FLINT_ROOT "${mingw-w64-x86_64-flint_SOURCE_DIR}/mingw64" CACHE PATH "FLINT root from MSYS2" FORCE)
       message(STATUS "Set FLINT_ROOT to: ${FLINT_ROOT}")
     endif()
   endif()
