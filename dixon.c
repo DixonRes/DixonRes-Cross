@@ -22,7 +22,7 @@
 #include "polynomial_system_solver.h"
 #include "dixon_test.h"
 
-#define PROGRAM_VERSION "0.1.0"
+#define PROGRAM_VERSION "0.1.1"
 
 #ifdef _WIN32
 #define DIXON_NULL_DEVICE "NUL"

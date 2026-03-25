@@ -1498,10 +1498,15 @@ static void qq_select_reconstruction_primes(ulong *primes, slong *num_primes_out
     ulong candidate;
     slong num_primes = 0;
 
+#ifdef _WIN32
+    candidate = (((ulong) 1) << 30) - 4096;
+#else
     candidate = (FLINT_BITS >= 64) ? ((((ulong) 1) << 62) - 4096)
                                    : ((((ulong) 1) << 30) - 4096);
+#endif
+
     for (slong i = 0; i < max_primes; i++) {
-        candidate = n_nextprime(candidate, 0);
+        candidate = n_nextprime(candidate, 1);
         primes[num_primes++] = candidate;
         candidate += 1024;
     }

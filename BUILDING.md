@@ -34,6 +34,7 @@ sudo cmake --install build           # installs to /usr/local
 | `DIXONRES_BUILD_STATIC_LIB` | `ON` | Build `libdixon.a` |
 | `DIXONRES_BUILD_GUI` | `ON` | Build Windows GUI targets |
 | `DIXONRES_BUILD_ATTACK` | `ON` | Build `../Attack/*.c` programs |
+| `DIXONRES_USE_BUNDLED_DEPS` | `ON` | Use bundled third-party dependencies (cross-compile only) |
 
 Examples:
 
@@ -98,8 +99,9 @@ sudo apt install gcc-mingw-w64-x86-64
 brew install mingw-w64
 ```
 
-Then build (note: `-DCMAKE_TOOLCHAIN_FILE` must be an **absolute path**,
-because CMake resolves relative paths against the build directory, not the source):
+### Option A: Use bundled third-party dependencies (default)
+
+The bundled `third_party/` and `runtime/` directories are used automatically:
 
 ```bash
 cmake -B build-win \
@@ -107,7 +109,50 @@ cmake -B build-win \
 cmake --build build-win -j$(nproc)
 ```
 
-The bundled `third_party/` directory is used automatically for FLINT and PML.
+### Option B: Auto-download from MSYS2 (recommended for clean Git repos)
+
+CMake will automatically download required DLLs and libraries directly from MSYS2
+during the build:
+
+```bash
+cmake -B build-win \
+      -DCMAKE_TOOLCHAIN_FILE="$(pwd)/cmake/toolchain-mingw64.cmake" \
+      -DDIXONRES_USE_BUNDLED_DEPS=OFF
+cmake --build build-win -j$(nproc)
+```
+
+**How it works:**
+- Packages are downloaded from https://packages.msys2.org/
+- DLLs are automatically extracted and copied to `build-win/dll/`
+- No need to commit large binary files in Git
+
+**Updating package versions/SHA256:**
+
+1. Visit https://packages.msys2.org/ and find the latest versions:
+   - FLINT: https://packages.msys2.org/package/mingw-w64-ucrt-x86_64-flint
+   - GMP: https://packages.msys2.org/package/mingw-w64-ucrt-x86_64-gmp
+   - MPFR: https://packages.msys2.org/package/mingw-w64-ucrt-x86_64-mpfr
+   - OpenBLAS: https://packages.msys2.org/package/mingw-w64-ucrt-x86_64-openblas
+   - GCC Libs: https://packages.msys2.org/package/mingw-w64-ucrt-x86_64-gcc-libs
+   - WinPthread: https://packages.msys2.org/package/mingw-w64-ucrt-x86_64-libwinpthread
+
+2. Copy the "Version" and "SHA256" values from each page and update them in `CMakeLists.txt` (lines 94-138)
+
+**Note about PML:**
+PML library is not available in MSYS2 repositories. You still need to provide `PML_ROOT` explicitly or use the bundled version in `third_party/pml/`.
+
+### Option C: Use system cross-compiler libraries
+
+If you have MinGW-w64 libraries installed system-wide via your package manager:
+
+```bash
+cmake -B build-win \
+      -DCMAKE_TOOLCHAIN_FILE="$(pwd)/cmake/toolchain-mingw64.cmake" \
+      -DDIXONRES_USE_BUNDLED_DEPS=OFF
+cmake --build build-win -j$(nproc)
+```
+
+Note: Ensure FLINT and other dependencies are installed for the MinGW-w64 cross-compiler.
 
 ---
 

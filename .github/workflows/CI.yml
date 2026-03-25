@@ -326,9 +326,8 @@ jobs:
       - name: Configure (CMake, MinGW cross-compile)
         run: |
           cmake -B build-win \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_TOOLCHAIN_FILE="$(pwd)/cmake/toolchain-mingw64.cmake"
-
+            -DCMAKE_TOOLCHAIN_FILE="$(pwd)/cmake/toolchain-mingw64.cmake" \
+            -DDIXONRES_USE_BUNDLED_DEPS=OFF
       - name: Build
         run: cmake --build build-win -j$(nproc)
 

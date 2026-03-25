@@ -18,6 +18,7 @@ option(DIXONRES_BUILD_SHARED_LIB "Build libdixon as a shared library"      ON)
 option(DIXONRES_BUILD_STATIC_LIB "Build libdixon as a static library"      ON)
 option(DIXONRES_BUILD_GUI        "Build Windows GUI targets (Windows only)" ON)
 option(DIXONRES_BUILD_ATTACK     "Build programs in ../Attack if present"  ON)
+option(DIXONRES_USE_BUNDLED_DEPS "Use bundled third-party dependencies (cross-compile only)" ON)
 
 # Hint paths exposed to the user  (override via -DFLINT_ROOT=... etc.)
 set(FLINT_ROOT ""   CACHE PATH "Root directory of FLINT installation")
@@ -40,6 +41,9 @@ include(CheckIPOSupported)
 include(CheckCCompilerFlag)
 include(CTest)
 
+# Include our custom MSYS2 package fetcher
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+
 # ============================================================
 # Platform detection
 # ============================================================
@@ -49,11 +53,23 @@ else()
   set(DIXONRES_WINDOWS FALSE)
 endif()
 
-# When cross-compiling for Windows from Linux/macOS, the bundled
-# third_party/ directory is used.  Native Windows builds need the
-# user to supply -DFLINT_ROOT= / -DPML_ROOT= (or install to a
-# standard prefix such as C:/msys64/ucrt64).
-if(DIXONRES_WINDOWS AND NOT FLINT_ROOT)
+# Detect if we're cross-compiling vs native Windows build
+if(DIXONRES_WINDOWS AND CMAKE_CROSSCOMPILING)
+  set(DIXONRES_WINDOWS_CROSS TRUE)
+  message(STATUS "Windows: cross-compiling from ${CMAKE_HOST_SYSTEM_NAME}")
+elseif(DIXONRES_WINDOWS)
+  set(DIXONRES_WINDOWS_NATIVE TRUE)
+  message(STATUS "Windows: native build (MSYS2/UCRT64)")
+else()
+  set(DIXONRES_WINDOWS_CROSS FALSE)
+  set(DIXONRES_WINDOWS_NATIVE FALSE)
+endif()
+
+# When cross-compiling for Windows from Linux/macOS:
+#   - Optionally use bundled third_party/ directory, OR
+#   - Use system-installed cross-compiler libraries
+# Native Windows builds (MSYS2) should use pacman-installed packages.
+if(DIXONRES_WINDOWS_CROSS AND DIXONRES_USE_BUNDLED_DEPS AND NOT FLINT_ROOT)
   if(EXISTS "${CMAKE_SOURCE_DIR}/third_party/mingw/include/flint/flint.h")
     set(FLINT_ROOT "${CMAKE_SOURCE_DIR}/third_party/mingw")
   else()
@@ -61,7 +77,147 @@ if(DIXONRES_WINDOWS AND NOT FLINT_ROOT)
   endif()
 endif()
 if(DIXONRES_WINDOWS AND DIXONRES_ENABLE_PML AND NOT PML_ROOT)
-  set(PML_ROOT "${CMAKE_SOURCE_DIR}/third_party/pml")
+  # PML is not available in MSYS2; always use bundled if available
+  if(EXISTS "${CMAKE_SOURCE_DIR}/third_party/pml/include/pml.h")
+    set(PML_ROOT "${CMAKE_SOURCE_DIR}/third_party/pml")
+  endif()
+endif()
+
+# ============================================================
+# Fetch MSYS2 packages for cross-compilation (when not using bundled deps)
+# ============================================================
+if(DIXONRES_WINDOWS_CROSS AND NOT DIXONRES_USE_BUNDLED_DEPS)
+  include(FetchMSYS2Package)
+  
+  message(STATUS "Fetching MSYS2 packages for cross-compilation...")
+  
+  # MSYS2 package definitions - update these as needed
+  # You can find latest versions and SHA256 at https://packages.msys2.org/
+  set(MSYS2_PACKAGES)
+  
+  # FLINT (Fast Library for Number Theory)
+  list(APPEND MSYS2_PACKAGES
+    "mingw-w64-ucrt-x86_64-flint"
+    "3.4.0-1"
+    "84a0b82609433b6829fdaf7543de234d7d7a0c074087f677b47494de45ac307d"
+  )
+  
+  # GMP (GNU Multiple Precision Arithmetic Library)
+  list(APPEND MSYS2_PACKAGES
+    "mingw-w64-ucrt-x86_64-gmp"
+    "6.3.0-2"
+    "e82a75968a556484a50084578238a84eb60fb93e34986fd6695c537975bd39ea"
+  )
+  
+  # MPFR (GNU Multiple Precision Floating-Point Library)
+  list(APPEND MSYS2_PACKAGES
+    "mingw-w64-ucrt-x86_64-mpfr"
+    "4.2.2-1"
+    "4cd9f334abed608e2b6c90151a20ee6645ed0a8f9b1fd5a57b0244df2af63a0f"
+  )
+  
+  # OpenBLAS (Optimized BLAS library)
+  list(APPEND MSYS2_PACKAGES
+    "mingw-w64-ucrt-x86_64-openblas"
+    "0.3.31-1"
+    "a2b11c1883786fc82e7b04cb01cd86aa27456ae5ce0cac975ae2c9620e5a7f2d"
+  )
+  
+  # GCC runtime libraries
+  list(APPEND MSYS2_PACKAGES
+    "mingw-w64-ucrt-x86_64-gcc-libs"
+    "15.2.0-13"
+    "2529e62407a945761e00749d3f5ea601e68b926f82fc2dad7ba968cebd65d1d7"
+  )
+  
+  # WinPthread
+  list(APPEND MSYS2_PACKAGES
+    "mingw-w64-ucrt-x86_64-libwinpthread"
+    "13.0.0.r560.g3197fc7d6-1"
+    "c1a84fa9f0f3f1dc26c5e9ccc0aae184806985b06dde0984b0521d89e387fe2b"
+  )
+  
+  # Download and extract all packages
+  set(ALL_FETCHED_PACKAGES "")
+  list(LENGTH MSYS2_PACKAGES NUM_PKG_ENTRIES)
+  math(EXPR NUM_PKGS "${NUM_PKG_ENTRIES} / 3")
+  
+  set(PKG_INDEX 0)
+  while(PKG_INDEX LESS NUM_PKGS)
+    math(EXPR NAME_INDEX "${PKG_INDEX} * 3")
+    math(EXPR VERSION_INDEX "${NAME_INDEX} + 1")
+    math(EXPR SHA256_INDEX "${NAME_INDEX} + 2")
+    
+    list(GET MSYS2_PACKAGES ${NAME_INDEX} PKG_NAME)
+    list(GET MSYS2_PACKAGES ${VERSION_INDEX} PKG_VERSION)
+    list(GET MSYS2_PACKAGES ${SHA256_INDEX} PKG_SHA256)
+    
+    # Skip placeholder SHA256 values (all hex digits but length might be wrong)
+    string(LENGTH "${PKG_SHA256}" SHA256_LEN)
+    if(NOT SHA256_LEN EQUAL 64)
+      message(WARNING "Skipping ${PKG_NAME}: invalid SHA256 length (${SHA256_LEN}, expected 64)")
+      message(WARNING "  Get correct SHA256 from https://packages.msys2.org/package/${PKG_NAME}")
+      math(EXPR PKG_INDEX "${PKG_INDEX} + 1")
+      continue()
+    endif()
+    
+    fetch_msys2_package(
+      PACKAGE_NAME "${PKG_NAME}"
+      VERSION "${PKG_VERSION}"
+      SHA256 "${PKG_SHA256}"
+      DESTINATION "${CMAKE_BINARY_DIR}/third_party_msys2"
+    )
+    
+    list(APPEND ALL_FETCHED_PACKAGES "${PKG_NAME}")
+    
+    math(EXPR PKG_INDEX "${PKG_INDEX} + 1")
+  endwhile()
+  
+  # Set up FLINT_ROOT from downloaded package if available
+  if(ALL_FETCHED_PACKAGES AND "mingw-w64-ucrt-x86_64-flint" IN_LIST ALL_FETCHED_PACKAGES)
+    if(NOT FLINT_ROOT)
+      set(FLINT_ROOT "${mingw-w64-ucrt-x86_64-flint_SOURCE_DIR}/ucrt64" CACHE PATH "FLINT root from MSYS2" FORCE)
+      message(STATUS "Set FLINT_ROOT to: ${FLINT_ROOT}")
+    endif()
+  endif()
+  
+  # Collect all DLLs and copy to dll/ directory
+  if(ALL_FETCHED_PACKAGES)
+    add_custom_target(copy_msys2_dlls ALL
+      COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/dll"
+      COMMENT "Preparing DLL directory..."
+    )
+    
+    foreach(PKG_NAME IN LISTS ALL_FETCHED_PACKAGES)
+      if(DEFINED ${PKG_NAME}_DLLS)
+        add_custom_command(TARGET copy_msys2_dlls POST_BUILD
+          COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                  ${${PKG_NAME}_DLLS}
+                  "${CMAKE_BINARY_DIR}/dll/"
+          COMMENT "Copying DLLs from ${PKG_NAME}..."
+        )
+      endif()
+    endforeach()
+  endif()
+  
+  # Also copy PML DLLs if available
+  if(EXISTS "${CMAKE_SOURCE_DIR}/third_party/pml/lib")
+    file(GLOB PML_DLLS "${CMAKE_SOURCE_DIR}/third_party/pml/lib/*.dll")
+    if(PML_DLLS)
+      if(NOT TARGET copy_msys2_dlls)
+        add_custom_target(copy_msys2_dlls ALL
+          COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/dll"
+          COMMENT "Preparing DLL directory..."
+        )
+      endif()
+      add_custom_command(TARGET copy_msys2_dlls POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${PML_DLLS}
+                "${CMAKE_BINARY_DIR}/dll/"
+        COMMENT "Copying PML DLLs..."
+      )
+    endif()
+  endif()
 endif()
 
 # ============================================================
@@ -506,16 +662,42 @@ if(DIXONRES_WINDOWS AND DIXONRES_BUILD_GUI)
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
   )
 
-  # Copy runtime DLLs from runtime/ → dll/  (mirrors the Makefile `runtime` target)
-  file(GLOB _runtime_dlls "${CMAKE_SOURCE_DIR}/runtime/*.dll")
-  if(_runtime_dlls)
-    add_custom_command(TARGET dixon_exe POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/dll"
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different
-              ${_runtime_dlls} "${CMAKE_BINARY_DIR}/dll/"
-      COMMENT "Copying runtime DLLs → dll/"
-      VERBATIM
-    )
+  # Copy runtime DLLs:
+  # - For native MSYS2 builds: don't copy (deps come from pacman)
+  # - For cross-compile with bundled deps: copy from runtime/ and PML
+  # - For cross-compile without bundled deps: DLLs are copied via copy_msys2_dlls target
+  if(DIXONRES_USE_BUNDLED_DEPS)
+    file(GLOB _runtime_dlls "${CMAKE_SOURCE_DIR}/runtime/*.dll")
+    file(GLOB _pml_dlls "${CMAKE_SOURCE_DIR}/third_party/pml/lib/*.dll")
+    if(_runtime_dlls OR _pml_dlls)
+      add_custom_command(TARGET dixon_exe POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/dll"
+        COMMENT "Copying bundled runtime DLLs → dll/"
+        VERBATIM
+      )
+      if(_runtime_dlls)
+        add_custom_command(TARGET dixon_exe POST_BUILD
+          COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                  ${_runtime_dlls} "${CMAKE_BINARY_DIR}/dll/"
+          COMMENT "Copying runtime DLLs..."
+          VERBATIM
+        )
+      endif()
+      if(_pml_dlls)
+        add_custom_command(TARGET dixon_exe POST_BUILD
+          COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                  ${_pml_dlls} "${CMAKE_BINARY_DIR}/dll/"
+          COMMENT "Copying PML DLLs..."
+          VERBATIM
+        )
+      endif()
+    endif()
+  elseif(TARGET copy_msys2_dlls)
+    # Make sure copy_msys2_dlls runs before building dixon_exe
+    add_dependencies(dixon_exe copy_msys2_dlls)
+    message(STATUS "Using MSYS2-fetched DLLs (via copy_msys2_dlls)")
+  else()
+    message(STATUS "Native/cross build: runtime DLLs will be provided by system/toolchain")
   endif()
 endif()
 
