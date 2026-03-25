@@ -8,13 +8,6 @@
 #     SHA256 "84a0b82609433b6829fdaf7543de234d7d7a0c074087f677b47494de45ac307d"
 #     DESTINATION "${CMAKE_BINARY_DIR}/third_party"
 #   )
-#
-# After downloading, the following variables are set:
-#   <PACKAGE_NAME>_SOURCE_DIR    - Root directory of extracted package
-#   <PACKAGE_NAME>_INCLUDE_DIR   - Include directory (ucrt64/include)
-#   <PACKAGE_NAME>_LIB_DIR       - Library directory (ucrt64/lib)
-#   <PACKAGE_NAME>_BIN_DIR       - Binary/DLL directory (ucrt64/bin)
-#   <PACKAGE_NAME>_DLLS          - List of DLL files in BIN_DIR
 
 include(FetchContent)
 
@@ -37,7 +30,25 @@ function(fetch_msys2_package)
     set(FETCH_MSYS2_DESTINATION "${CMAKE_BINARY_DIR}/third_party")
   endif()
 
-  set(PACKAGE_URL "https://mirror.msys2.org/mingw/ucrt64/${FETCH_MSYS2_PACKAGE_NAME}-${FETCH_MSYS2_VERSION}-any.pkg.tar.zst")
+  set(PACKAGE_SUBDIR "ucrt64") 
+  
+  if(FETCH_MSYS2_PACKAGE_NAME MATCHES "mingw-w64-ucrt-x86_64")
+    set(PACKAGE_SUBDIR "ucrt64")
+  elseif(FETCH_MSYS2_PACKAGE_NAME MATCHES "mingw-w64-clang-x86_64")
+    set(PACKAGE_SUBDIR "clang64")
+  elseif(FETCH_MSYS2_PACKAGE_NAME MATCHES "mingw-w64-clang-aarch64")
+    set(PACKAGE_SUBDIR "clangarm64")
+  elseif(FETCH_MSYS2_PACKAGE_NAME MATCHES "mingw-w64-x86_64")
+    set(PACKAGE_SUBDIR "mingw64")
+  elseif(FETCH_MSYS2_PACKAGE_NAME MATCHES "mingw-w64-i686")
+    set(PACKAGE_SUBDIR "mingw32")
+  endif()
+  
+  message(STATUS "Package ${FETCH_MSYS2_PACKAGE_NAME} → using subdir: ${PACKAGE_SUBDIR}")
+
+  set(REPO_PATH "mingw/${PACKAGE_SUBDIR}")
+  set(PACKAGE_URL "https://mirror.msys2.org/${REPO_PATH}/${FETCH_MSYS2_PACKAGE_NAME}-${FETCH_MSYS2_VERSION}-any.pkg.tar.zst")
+  
   set(PACKAGE_DOWNLOAD_DIR "${FETCH_MSYS2_DESTINATION}/downloads")
   set(PACKAGE_EXTRACT_DIR "${FETCH_MSYS2_DESTINATION}/${FETCH_MSYS2_PACKAGE_NAME}")
 
@@ -48,19 +59,25 @@ function(fetch_msys2_package)
   # Check if already extracted
   if(NOT EXISTS "${PACKAGE_EXTRACT_DIR}/.extracted")
     message(STATUS "Downloading MSYS2 package: ${FETCH_MSYS2_PACKAGE_NAME} ${FETCH_MSYS2_VERSION}")
+    message(STATUS "  URL: ${PACKAGE_URL}")
     
-    # Just use CMake's built-in file(DOWNLOAD) - it's more reliable in CMake context
     file(DOWNLOAD
       "${PACKAGE_URL}"
       "${PACKAGE_DOWNLOAD_DIR}/${FETCH_MSYS2_PACKAGE_NAME}-${FETCH_MSYS2_VERSION}-any.pkg.tar.zst"
       EXPECTED_HASH SHA256=${FETCH_MSYS2_SHA256}
       SHOW_PROGRESS
       STATUS DOWNLOAD_STATUS
+      TIMEOUT 60
+      INACTIVITY_TIMEOUT 15
     )
     list(GET DOWNLOAD_STATUS 0 DOWNLOAD_STATUS_CODE)
     list(GET DOWNLOAD_STATUS 1 DOWNLOAD_STATUS_MESSAGE)
+    
     if(NOT DOWNLOAD_STATUS_CODE EQUAL 0)
-      message(FATAL_ERROR "Failed to download ${FETCH_MSYS2_PACKAGE_NAME}: ${DOWNLOAD_STATUS_MESSAGE}")
+      message(FATAL_ERROR "Failed to download ${FETCH_MSYS2_PACKAGE_NAME}\n"
+                         "  URL: ${PACKAGE_URL}\n"
+                         "  Error: ${DOWNLOAD_STATUS_MESSAGE}\n"
+                         "  Tip: Check if the package exists at https://mirror.msys2.org/${REPO_PATH}/")
     endif()
 
     message(STATUS "Extracting MSYS2 package: ${FETCH_MSYS2_PACKAGE_NAME}")
@@ -95,14 +112,13 @@ function(fetch_msys2_package)
     message(STATUS "MSYS2 package ${FETCH_MSYS2_PACKAGE_NAME} already fetched")
   endif()
 
-  # Set output variables
   set(${FETCH_MSYS2_PACKAGE_NAME}_SOURCE_DIR "${PACKAGE_EXTRACT_DIR}" PARENT_SCOPE)
-  set(${FETCH_MSYS2_PACKAGE_NAME}_INCLUDE_DIR "${PACKAGE_EXTRACT_DIR}/ucrt64/include" PARENT_SCOPE)
-  set(${FETCH_MSYS2_PACKAGE_NAME}_LIB_DIR "${PACKAGE_EXTRACT_DIR}/ucrt64/lib" PARENT_SCOPE)
-  set(${FETCH_MSYS2_PACKAGE_NAME}_BIN_DIR "${PACKAGE_EXTRACT_DIR}/ucrt64/bin" PARENT_SCOPE)
+  set(${FETCH_MSYS2_PACKAGE_NAME}_INCLUDE_DIR "${PACKAGE_EXTRACT_DIR}/${PACKAGE_SUBDIR}/include" PARENT_SCOPE)
+  set(${FETCH_MSYS2_PACKAGE_NAME}_LIB_DIR "${PACKAGE_EXTRACT_DIR}/${PACKAGE_SUBDIR}/lib" PARENT_SCOPE)
+  set(${FETCH_MSYS2_PACKAGE_NAME}_BIN_DIR "${PACKAGE_EXTRACT_DIR}/${PACKAGE_SUBDIR}/bin" PARENT_SCOPE)
   
   # Collect all DLL files
-  file(GLOB_RECURSE _dll_files "${PACKAGE_EXTRACT_DIR}/ucrt64/bin/*.dll")
+  file(GLOB_RECURSE _dll_files "${PACKAGE_EXTRACT_DIR}/${PACKAGE_SUBDIR}/bin/*.dll")
   set(${FETCH_MSYS2_PACKAGE_NAME}_DLLS "${_dll_files}" PARENT_SCOPE)
 endfunction()
 
