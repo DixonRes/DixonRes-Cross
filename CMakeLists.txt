@@ -97,9 +97,9 @@ if(DIXONRES_WINDOWS_CROSS AND NOT DIXONRES_USE_BUNDLED_DEPS)
   
   # FLINT (Fast Library for Number Theory)
   list(APPEND MSYS2_PACKAGES
-    "mingw-w64-ucrt-x86_64-flint"
+    "mingw-w64-x86_64-flint"
     "3.4.0-1"
-    "84a0b82609433b6829fdaf7543de234d7d7a0c074087f677b47494de45ac307d"
+    "fe432fe85304e738c77ea3d139c1ffc4447139f44da6f9f88dc05f46267fb7e7"
   )
   
   # GMP (GNU Multiple Precision Arithmetic Library)
