@@ -20,6 +20,7 @@
 #include "dixon_with_ideal_reduction.h"
 #include "dixon_complexity.h"
 #include "polynomial_system_solver.h"
+#include "rational_system_solver.h"
 #include "dixon_test.h"
 
 #define PROGRAM_VERSION "0.1.1"
@@ -325,10 +326,10 @@ static char *generate_timestamped_filename(const char *prefix)
     struct tm *t = localtime(&now);
 
     if (t) {
-        snprintf(format, sizeof(format), "%s_%%Y%%m%%d_%%H%%M%%S.dat", prefix);
+        snprintf(format, sizeof(format), "%s_%%Y%%m%%d_%%H%%M%%S.dr", prefix);
         strftime(buffer, sizeof(buffer), format, t);
     } else {
-        snprintf(buffer, sizeof(buffer), "%s.dat", prefix);
+        snprintf(buffer, sizeof(buffer), "%s.dr", prefix);
     }
 
     return strdup(buffer);
@@ -1122,6 +1123,97 @@ static void save_solver_result_to_file(const char *filename,
                 if (total_printed > 0) fprintf(out_fp, ", ");
                 char *sol_str = fq_nmod_get_str_pretty(sols->solution_sets[set][var][sol], sols->ctx);
                 fprintf(out_fp, "%s", sol_str); free(sol_str);
+                total_printed++;
+            }
+        }
+        fprintf(out_fp, "}");
+        if (total_printed > 1)      fprintf(out_fp, " (%ld solutions)", total_printed);
+        else if (total_printed == 0) fprintf(out_fp, " (no solutions)");
+        fprintf(out_fp, "\n");
+    }
+    fprintf(out_fp, "=== Solution Complete ===\n\n");
+    fclose(out_fp);
+}
+
+static void save_rational_solver_result_to_file(const char *filename,
+                                                const char *polys_str,
+                                                const rational_solutions_t *sols,
+                                                double computation_time)
+{
+    FILE *out_fp = fopen(filename, "w");
+    if (!out_fp) {
+        fprintf(stderr, "Warning: Could not create output file '%s'\n", filename);
+        return;
+    }
+
+    fprintf(out_fp, "Rational Polynomial System Solver\n");
+    fprintf(out_fp, "==================================\n");
+    fprintf(out_fp, "Field: Q\n");
+    fprintf(out_fp, "Polynomials: %s\n", polys_str);
+    fprintf(out_fp, "Computation time: %.3f seconds\n", computation_time);
+    fprintf(out_fp, "\nSolutions:\n==========\n");
+
+    if (!sols) { fprintf(out_fp, "Solution structure is null\n"); fclose(out_fp); return; }
+
+    fprintf(out_fp, "\n=== Rational Polynomial System Solutions ===\n");
+    if (!sols->is_valid) {
+        fprintf(out_fp, "Solving failed");
+        if (sols->error_message) fprintf(out_fp, ": %s", sols->error_message);
+        fprintf(out_fp, "\n");
+        fclose(out_fp); return;
+    }
+    if (sols->has_no_solutions == -1) {
+        fprintf(out_fp, "System has positive dimension; finite solution listing skipped\n");
+        fclose(out_fp); return;
+    }
+    if (sols->has_no_solutions == 1) {
+        fprintf(out_fp, "System has no solutions over the rational numbers\n");
+        fclose(out_fp); return;
+    }
+    if (sols->num_variables == 0) {
+        fprintf(out_fp, "No variables\n"); fclose(out_fp); return;
+    }
+    if (sols->num_solution_sets == 0) {
+        fprintf(out_fp, "No solutions found\n"); fclose(out_fp); return;
+    }
+
+    fprintf(out_fp, "Found %ld complete solution set(s):\n", sols->num_solution_sets);
+    for (slong set = 0; set < sols->num_solution_sets; set++) {
+        fprintf(out_fp, "\nSolution set %ld:\n", set + 1);
+        for (slong var = 0; var < sols->num_variables; var++) {
+            fprintf(out_fp, "  %s = ", sols->variable_names[var]);
+            slong num_sols = sols->solutions_per_var[set * sols->num_variables + var];
+            if (num_sols == 0) {
+                fprintf(out_fp, "no solution");
+            } else if (num_sols == 1) {
+                char *sol_str = fmpq_get_str(NULL, 10, sols->solution_sets[set][var][0]);
+                fprintf(out_fp, "%s", sol_str);
+                flint_free(sol_str);
+            } else {
+                fprintf(out_fp, "{");
+                for (slong sol = 0; sol < num_sols; sol++) {
+                    if (sol > 0) fprintf(out_fp, ", ");
+                    char *sol_str = fmpq_get_str(NULL, 10, sols->solution_sets[set][var][sol]);
+                    fprintf(out_fp, "%s", sol_str);
+                    flint_free(sol_str);
+                }
+                fprintf(out_fp, "}");
+            }
+            fprintf(out_fp, "\n");
+        }
+    }
+
+    fprintf(out_fp, "\n=== Compatibility View ===\n");
+    for (slong var = 0; var < sols->num_variables; var++) {
+        fprintf(out_fp, "%s = {", sols->variable_names[var]);
+        slong total_printed = 0;
+        for (slong set = 0; set < sols->num_solution_sets; set++) {
+            slong num_sols = sols->solutions_per_var[set * sols->num_variables + var];
+            for (slong sol = 0; sol < num_sols; sol++) {
+                if (total_printed > 0) fprintf(out_fp, ", ");
+                char *sol_str = fmpq_get_str(NULL, 10, sols->solution_sets[set][var][sol]);
+                fprintf(out_fp, "%s", sol_str);
+                flint_free(sol_str);
                 total_printed++;
             }
         }
@@ -1928,10 +2020,6 @@ int main(int argc, char *argv[])
     }
 
     if (rational_mode) {
-        if (solve_mode) {
-            fprintf(stderr, "Error: field_size=0 currently supports Dixon resultant and --comp only; --solve is not implemented yet.\n");
-            goto cleanup_fail;
-        }
         if (ideal_str) {
             fprintf(stderr, "Error: field_size=0 currently does not support --ideal.\n");
             goto cleanup_fail;
@@ -2102,6 +2190,7 @@ int main(int argc, char *argv[])
 
     char *result = NULL;
     polynomial_solutions_t *solutions = NULL;
+    rational_solutions_t *rational_solutions = NULL;
 
     if (comp_mode) {
         /* ---- Complexity analysis ---- */
@@ -2132,20 +2221,38 @@ int main(int argc, char *argv[])
         int suppress_solver_stdout = !silent_mode && !solve_verbose_mode;
         int suppress_solver_trace = silent_mode;
 
-        polynomial_solver_set_realtime_progress(0);
+        if (rational_mode) {
+            rational_solver_set_realtime_progress(0);
 
-        if (suppress_solver_trace) {
-            redirect_stdio_to_devnull(&orig_stdout, &orig_stderr);
-        } else if (suppress_solver_stdout) {
-            redirect_fd_to_devnull(STDOUT_FILENO, &orig_stdout);
-        }
+            if (suppress_solver_trace) {
+                redirect_stdio_to_devnull(&orig_stdout, &orig_stderr);
+            } else if (suppress_solver_stdout) {
+                redirect_fd_to_devnull(STDOUT_FILENO, &orig_stdout);
+            }
 
-        solutions = solve_polynomial_system_string(polys_str, ctx);
+            rational_solutions = solve_rational_polynomial_system_string(polys_str);
 
-        if (suppress_solver_trace) {
-            restore_stdio(orig_stdout, orig_stderr);
-        } else if (suppress_solver_stdout) {
-            restore_fd(STDOUT_FILENO, orig_stdout);
+            if (suppress_solver_trace) {
+                restore_stdio(orig_stdout, orig_stderr);
+            } else if (suppress_solver_stdout) {
+                restore_fd(STDOUT_FILENO, orig_stdout);
+            }
+        } else {
+            polynomial_solver_set_realtime_progress(0);
+
+            if (suppress_solver_trace) {
+                redirect_stdio_to_devnull(&orig_stdout, &orig_stderr);
+            } else if (suppress_solver_stdout) {
+                redirect_fd_to_devnull(STDOUT_FILENO, &orig_stdout);
+            }
+
+            solutions = solve_polynomial_system_string(polys_str, ctx);
+
+            if (suppress_solver_trace) {
+                restore_stdio(orig_stdout, orig_stderr);
+            } else if (suppress_solver_stdout) {
+                restore_fd(STDOUT_FILENO, orig_stdout);
+            }
         }
 
     } else if (ideal_str) {
@@ -2212,23 +2319,44 @@ int main(int argc, char *argv[])
         /* already printed inside run_complexity_analysis */
         ;
     } else if (solve_mode) {
-        if (solutions) {
-            if (!silent_mode) {
-                print_polynomial_solutions(solutions);
-            }
+        if (rational_mode) {
+            if (rational_solutions) {
+                if (!silent_mode) {
+                    print_rational_solutions(rational_solutions);
+                }
 
-            if (output_filename) {
-                save_solver_result_to_file(output_filename, polys_str,
-                                           p_fmpz, power, solutions,
-                                           computation_time);
+                if (output_filename) {
+                    save_rational_solver_result_to_file(output_filename, polys_str,
+                                                       rational_solutions,
+                                                       computation_time);
+                    if (!silent_mode)
+                        printf("Result saved to: %s\n", output_filename);
+                }
+                rational_solutions_clear(rational_solutions);
+                free(rational_solutions);
+            } else {
                 if (!silent_mode)
-                    printf("Result saved to: %s\n", output_filename);
+                    fprintf(stderr, "\nError: Rational polynomial system solving failed\n");
             }
-            polynomial_solutions_clear(solutions);
-            free(solutions);
         } else {
-            if (!silent_mode)
-                fprintf(stderr, "\nError: Polynomial system solving failed\n");
+            if (solutions) {
+                if (!silent_mode) {
+                    print_polynomial_solutions(solutions);
+                }
+
+                if (output_filename) {
+                    save_solver_result_to_file(output_filename, polys_str,
+                                               p_fmpz, power, solutions,
+                                               computation_time);
+                    if (!silent_mode)
+                        printf("Result saved to: %s\n", output_filename);
+                }
+                polynomial_solutions_clear(solutions);
+                free(solutions);
+            } else {
+                if (!silent_mode)
+                    fprintf(stderr, "\nError: Polynomial system solving failed\n");
+            }
         }
     } else {
         if (result) {

@@ -1692,9 +1692,9 @@ static char *qq_reconstruct_from_modular_dixon_with_file(const char *poly_string
                                                           qq_poly_recon_t *best_recon_out,
                                                           int *have_best_recon_out,
                                                           const char *output_filename) {
-    const slong max_primes = 24;
-    const slong min_primes_before_stopping = 12;
-    const slong stable_rounds_before_stopping = 8;
+    const slong max_primes = 8;
+    const slong min_primes_before_stopping = 4;
+    const slong stable_rounds_before_stopping = 3;
     ulong primes[max_primes];
     slong num_primes = 0;
     slong num_remaining;

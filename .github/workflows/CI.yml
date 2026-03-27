@@ -87,9 +87,10 @@ jobs:
           strip ./build/dixon
           ARTIFACT_NAME="dixon-${TAG}-linux-${ARCH}"
           mkdir -p dist
-          cp ./build/dixon "dist/${ARTIFACT_NAME}"
+          cp ./build/dixon "dist/dixon"
+          cp ./dixon_sage_interface.sage "dist/"
           cat > dist/build-info-linux.txt <<EOF
-          Binary   : ${ARTIFACT_NAME}
+          Binary   : dixon
           Built on : $(date -u +"%Y-%m-%d %H:%M UTC")
           OS       : $(lsb_release -ds 2>/dev/null || uname -sr)
           Arch     : ${ARCH}
@@ -113,7 +114,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/${{ env.ARTIFACT_NAME }}
+            dist/dixon
+            dist/dixon_sage_interface.sage
             dist/build-info-linux.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -269,9 +271,10 @@ jobs:
           strip ./build/dixon
           ARTIFACT_NAME="dixon-${TAG}-macos${MACOS_VER}-${ARCH}"
           mkdir -p dist
-          cp ./build/dixon "dist/${ARTIFACT_NAME}"
+          cp ./build/dixon "dist/dixon"
+          cp ./dixon_sage_interface.sage "dist/"
           cat > dist/build-info-macos.txt <<EOF
-          Binary   : ${ARTIFACT_NAME}
+          Binary   : dixon
           Built on : $(date -u +"%Y-%m-%d %H:%M UTC")
           macOS    : $(sw_vers -productVersion)
           Arch     : ${ARCH}
@@ -295,7 +298,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/${{ env.ARTIFACT_NAME }}
+            dist/dixon
+            dist/dixon_sage_interface.sage
             dist/build-info-macos.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

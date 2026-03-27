@@ -585,6 +585,7 @@ set(MATH_SOURCES
   src/gf2n_field.c
   src/gf2n_poly.c
   src/polynomial_system_solver.c
+  src/rational_system_solver.c
   src/resultant_with_ideal_reduction.c
   src/unified_mpoly_det.c
   src/unified_mpoly_interface.c
