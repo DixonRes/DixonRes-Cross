@@ -1,6 +1,8 @@
 # PML - FLINT Extras (Windows Compatibility Fork)
 
-This is a modified version of the PML library (FLINT extras) with minor adjustments to support Windows compilation. DixonRes uses the PML library to accelerate univariate polynomial matrix determinant computation over prime fields.
+This repository contains a modified version of the PML library (FLINT extras), with minor adjustments to support Windows compilation. The original library can be found at: <https://github.com/vneiger/pml>
+
+DixonRes utilizes the PML library to accelerate univariate polynomial matrix determinant computation over prime fields.
 
 ## About PML
 
