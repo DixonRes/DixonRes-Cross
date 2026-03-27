@@ -1,0 +1,79 @@
+# Build directories
+build/
+build-*/
+cmake-build-*/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Notepad++ backups
+nppBackup/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+!cmake/*.cmake
+!cmake/**/*.cmake
+CPackConfig.cmake
+CPackSourceConfig.cmake
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.cache
+
+# Third party build artifacts
+third_party_msys2/
+
+# DLL directory
+dll/

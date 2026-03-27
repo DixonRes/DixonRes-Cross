@@ -1968,7 +1968,7 @@ void fq_dixon_resultant(fq_mvpoly_t *result, fq_mvpoly_t *polys,
     
     if (d_poly.nterms <= 100) {
         printf("Dixon polynomial: %ld terms\n", d_poly.nterms);
-        fq_mvpoly_print_expanded(&d_poly, "Dixon", 1);
+        fq_mvpoly_print_expanded(&d_poly, "DixonPoly", 1);
     } else {
         printf("Dixon polynomial: %ld terms (not shown)\n", d_poly.nterms);
     }
