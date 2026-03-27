@@ -78,7 +78,7 @@ if(DIXONRES_WINDOWS_CROSS AND DIXONRES_USE_BUNDLED_DEPS AND NOT FLINT_ROOT)
 endif()
 if(DIXONRES_WINDOWS AND DIXONRES_ENABLE_PML AND NOT PML_ROOT)
   # PML is not available in MSYS2; always use bundled if available
-  if(EXISTS "${CMAKE_SOURCE_DIR}/third_party/pml/include/pml.h")
+  if(EXISTS "${CMAKE_SOURCE_DIR}/third_party/pml/src/pml.h")
     set(PML_ROOT "${CMAKE_SOURCE_DIR}/third_party/pml")
   endif()
 endif()

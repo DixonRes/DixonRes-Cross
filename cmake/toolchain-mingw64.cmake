@@ -43,8 +43,8 @@ endif()
 
 # Search headers/libs in the cross-root; build tools from host
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY BOTH)  # 改为 BOTH
-set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE BOTH)  # 改为 BOTH
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY BOTH)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE BOTH)
 set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE BOTH) 
 
 # The project bundles Windows third-party deps in third_party/
