@@ -68,13 +68,13 @@ static void print_short_usage(const char *prog_name)
     printf("  --step1, --step4  Override method <n> for specific algorithm steps\n");
     printf("  --cache <num>     Determinant memoization cache entry limit (default: 1024)\n");
     printf("  --threads <num>   Set number of threads for parallel computation\n");
-    printf("  --max-primes <n>  Maximum primes for rational reconstruction (Q default: 64; large-prime fallback: 256)\n");
     printf("  --dixon           Use Dixon resultant (default)\n");
     printf("  --macaulay        Use Macaulay resultant\n");
     printf("  --subres          Use Subresultant (2 polys)\n");
     printf("  --field-equation  After each multiplication, reduces x^q -> x for every variable\n");
     printf("  --ideal <args>    After each multiplication, reduces using the given substitution\n");
     printf("  --complex         Output complex solutions (2x2 solver or complex roots over Q)\n");
+    printf("  --max-primes <n>  Maximum primes for rational reconstruction (Q default: 64; large-prime fallback: 256)\n");
     printf("  --test <n>        Run built-in tests (1: Dixon matrix size, 2: Bezout bound, 3: solver correctness, 4: performance)\n");
     printf("  --time            Print per-step timing information\n");
     printf("  -v, --verbose <n> Verbosity level (0:silent, 1:default, 2:detailed, 3:debug)\n");
@@ -199,7 +199,7 @@ void drsolve_cli_print_usage(const char *prog_name)
     printf("    Example: %s -r -s \"[2]*3\" 257\n", prog_name);
     printf("    Example: %s -r --comp --omega 2.81 \"[2]*3\" 257\n", prog_name);
     printf("    -> Add -n <num_vars> to set the total variable count (must satisfy num_vars >= #equations-1)\n");
-    printf("    -> Add --density <ratio> with 0 <= ratio <= 1 to choose the fraction of all monomials used (default: 1)\n");
+    printf("    -> Add --density <ratio> with 0 <= ratio <= 1 to choose the fraction of all monomials used (default: 0.5 over F2, otherwise 1)\n");
     printf("    -> Add --seed <num> to generate the same random system reproducibly across runs\n");
     printf("    -> Mixed degree specs such as \"[2]*5+[3]*6\" are supported\n");
     printf("\n");

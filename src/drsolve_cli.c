@@ -3447,6 +3447,10 @@ int drsolve_cli_main(int argc, char *argv[], const char *prog_name)
     int large_prime_mode = (!rational_mode && power == 1 && !fmpz_abs_fits_ui(p_fmpz));
     int ctx_initialized = 0;
 
+    if (rand_mode && !random_density_given && power == 1 && fmpz_equal_ui(p_fmpz, 2)) {
+        random_density = 0.5;
+    }
+
     if (!rational_mode && !large_prime_mode) {
         prime = fmpz_get_ui(p_fmpz);
     }

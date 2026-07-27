@@ -180,7 +180,7 @@ Generate random polynomial systems for testing and benchmarking.
 ./drsolve -r -c    "[d]*n"         field_size
 ```
 - Add `-n <num_vars>` to set the variable count
-- Add `--density <ratio>` with `0 <= ratio <= 1`
+- Add `--density <ratio>` with `0 <= ratio <= 1` (default: `0.5` over F2, otherwise `1`)
 - Add `--seed <num>` for reproducible random systems
 - Mixed degree specifications such as `"[2]*5+[3]*6"` are supported
 
