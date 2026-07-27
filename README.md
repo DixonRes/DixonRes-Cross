@@ -181,6 +181,7 @@ Generate random polynomial systems for testing and benchmarking.
 ```
 - Add `-n <num_vars>` to set the variable count
 - Add `--density <ratio>` with `0 <= ratio <= 1` (default: `0.5` over F2, otherwise `1`)
+- Add `--homogeneous` (alias `--hom`) to generate each polynomial using only monomials of its requested total degree
 - Add `--seed <num>` for reproducible random systems
 - Mixed degree specifications such as `"[2]*5+[3]*6"` are supported
 
@@ -190,6 +191,7 @@ Examples:
 ./drsolve -r "[3]*3" 0
 ./drsolve -r -n 4 --density 0.5 "[3]*3" 257
 ./drsolve -r --seed 12345 "[3]*3" 257
+./drsolve -r --homogeneous --density 0.5 "[3]*3" 257
 ./drsolve -r "[2]*4+[3]*2" 257
 ./drsolve -r -s "[2]*3" 257
 ./drsolve -r --comp --omega 2.373 "[4]*4" 257

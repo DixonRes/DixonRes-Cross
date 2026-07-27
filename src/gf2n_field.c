@@ -147,14 +147,14 @@ void init_gf28_tables(uint8_t irred_poly) {
     
     /* Find a primitive element (generator) */
     uint8_t generator = 0;
-    for (uint8_t g = 2; g < 256; g++) {
+    for (uint16_t g = 2; g < 256; g++) {
         uint16_t alpha = 1;
         int is_primitive = 1;
         
         for (int i = 0; i < 255; i++) {
             uint16_t new_alpha = 0;
             uint16_t a = alpha;
-            uint8_t b = g;
+            uint8_t b = (uint8_t) g;
             
             while (b) {
                 if (b & 1) new_alpha ^= a;
@@ -296,14 +296,14 @@ void init_gf216_tables(uint16_t irred_poly) {
     memset(g_gf216_tables->inv_table, 0, sizeof(g_gf216_tables->inv_table));
     
     uint16_t generator = 0;
-    for (uint16_t g = 2; g < 65536; g++) {
+    for (uint32_t g = 2; g < 65536; g++) {
         uint32_t alpha = 1;
         int is_primitive = 1;
         
         for (int i = 0; i < 65535; i++) {
             uint32_t new_alpha = 0;
             uint32_t a = alpha;
-            uint16_t b = g;
+            uint16_t b = (uint16_t) g;
             
             while (b) {
                 if (b & 1) new_alpha ^= a;

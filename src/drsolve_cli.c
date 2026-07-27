@@ -1262,6 +1262,7 @@ static int generate_random_poly_strings_large_prime(
         slong nvars,
         slong num_elim_vars,
         double density_ratio,
+        int homogeneous,
         int seed_given,
         ulong seed,
         const fmpz_t prime,
@@ -1318,7 +1319,12 @@ static int generate_random_poly_strings_large_prime(
         fmpz_t coeff;
 
         fmpz_init(coeff);
-        enumerate_all_monomials(&monomials, &monomial_count, nvars, degree);
+        if (homogeneous) {
+            enumerate_homogeneous_monomials(&monomials, &monomial_count,
+                                            nvars, degree);
+        } else {
+            enumerate_all_monomials(&monomials, &monomial_count, nvars, degree);
+        }
         if (!monomials || monomial_count <= 0) {
             fmpz_clear(coeff);
             free_enumerated_monomials(monomials, monomial_count);
@@ -1422,8 +1428,11 @@ static int generate_random_poly_strings_large_prime(
             printf("%ld", degrees[i]);
         }
         printf("]\n");
-        printf("Density: %.2f%% of all monomials up to each polynomial degree\n",
+        printf(homogeneous
+                   ? "Density: %.2f%% of monomials at each polynomial degree\n"
+                   : "Density: %.2f%% of all monomials up to each polynomial degree\n",
                density_ratio * 100.0);
+        if (homogeneous) printf("Homogeneous: yes\n");
         if (seed_given) {
             printf("Seed: %lu\n", seed);
         }
@@ -1455,6 +1464,7 @@ fail:
 static char *build_random_system_spec(const char *deg_spec,
                                       slong nvars,
                                       double density_ratio,
+                                      int homogeneous,
                                       int seed_given,
                                       ulong seed)
 {
@@ -1463,18 +1473,18 @@ static char *build_random_system_spec(const char *deg_spec,
 
     if (!deg_spec) return strdup("random system");
 
-    spec_len = strlen(deg_spec) + 160;
+    spec_len = strlen(deg_spec) + 192;
     spec = (char *) malloc(spec_len);
     if (!spec) return NULL;
 
     if (seed_given) {
         snprintf(spec, spec_len,
-                 "random system spec: degrees=%s, variables=%ld, density=%.6g, seed=%lu",
-                 deg_spec, nvars, density_ratio, seed);
+                 "random system spec: degrees=%s, variables=%ld, density=%.6g, homogeneous=%s, seed=%lu",
+                 deg_spec, nvars, density_ratio, homogeneous ? "yes" : "no", seed);
     } else {
         snprintf(spec, spec_len,
-                 "random system spec: degrees=%s, variables=%ld, density=%.6g",
-                 deg_spec, nvars, density_ratio);
+                 "random system spec: degrees=%s, variables=%ld, density=%.6g, homogeneous=%s",
+                 deg_spec, nvars, density_ratio, homogeneous ? "yes" : "no");
     }
     return spec;
 }
@@ -1484,6 +1494,7 @@ static int generate_random_poly_strings(
         slong nvars,
         slong num_elim_vars,
         double density_ratio,
+        int homogeneous,
         int seed_given,
         ulong seed,
         const fq_nmod_ctx_t ctx,
@@ -1538,8 +1549,14 @@ static int generate_random_poly_strings(
         close(devnull);
     }
 
-    generate_polynomial_system(&polys, nvars, npolys, npars,
-                               slong_deg, density_ratio, ctx, rstate);
+    if (homogeneous) {
+        generate_homogeneous_polynomial_system(&polys, nvars, npolys, npars,
+                                               slong_deg, density_ratio, ctx,
+                                               rstate);
+    } else {
+        generate_polynomial_system(&polys, nvars, npolys, npars,
+                                   slong_deg, density_ratio, ctx, rstate);
+    }
 
     fflush(stdout);
     if (orig_stdout != -1) {
@@ -1575,8 +1592,11 @@ static int generate_random_poly_strings(
             printf("%ld", slong_deg[i]);
         }
         printf("]\n");
-        printf("Density: %.2f%% of all monomials up to each polynomial degree\n",
+        printf(homogeneous
+                   ? "Density: %.2f%% of monomials at each polynomial degree\n"
+                   : "Density: %.2f%% of all monomials up to each polynomial degree\n",
                density_ratio * 100.0);
+        if (homogeneous) printf("Homogeneous: yes\n");
         if (seed_given) {
             printf("Seed: %lu\n", seed);
         }
@@ -2571,6 +2591,7 @@ static int generate_random_poly_strings_rational(
         slong nvars,
         slong num_elim_vars,
         double density_ratio,
+        int homogeneous,
         int seed_given,
         ulong seed,
         int silent_mode,
@@ -2611,7 +2632,12 @@ static int generate_random_poly_strings_rational(
         int first_term = 1;
         slong selected = 0;
 
-        enumerate_all_monomials(&monomials, &monomial_count, nvars, degree);
+        if (homogeneous) {
+            enumerate_homogeneous_monomials(&monomials, &monomial_count,
+                                            nvars, degree);
+        } else {
+            enumerate_all_monomials(&monomials, &monomial_count, nvars, degree);
+        }
         if (!monomials || monomial_count <= 0) {
             free(indices);
             free(poly_buf);
@@ -2721,8 +2747,11 @@ static int generate_random_poly_strings_rational(
             printf("%ld", degrees[i]);
         }
         printf("]\n");
-        printf("Density: %.2f%% of all monomials up to each polynomial degree\n",
+        printf(homogeneous
+                   ? "Density: %.2f%% of monomials at each polynomial degree\n"
+                   : "Density: %.2f%% of all monomials up to each polynomial degree\n",
                density_ratio * 100.0);
+        if (homogeneous) printf("Homogeneous: yes\n");
         if (seed_given) {
             printf("Seed: %lu\n", seed);
         }
@@ -2786,6 +2815,7 @@ int drsolve_cli_main(int argc, char *argv[], const char *prog_name)
     int random_nvars_given = 0;
     double random_density = 1.0;
     int random_density_given = 0;
+    int random_homogeneous = 0;
     ulong random_seed = 0;
     int random_seed_given = 0;
     int complex_mode = 0;
@@ -2834,6 +2864,9 @@ int drsolve_cli_main(int argc, char *argv[], const char *prog_name)
         } else if (strcmp(argv[i], "--random") == 0 ||
                    strcmp(argv[i], "-r")       == 0) {
             rand_mode = 1;
+        } else if (strcmp(argv[i], "--homogeneous") == 0 ||
+                   strcmp(argv[i], "--hom") == 0) {
+            random_homogeneous = 1;
         } else if (strcmp(argv[i], "--ideal") == 0) {  /* <<< NEW >>> */
             ideal_mode = 1;
         } else if (strcmp(argv[i], "--field-equation") == 0) {
@@ -3112,8 +3145,9 @@ int drsolve_cli_main(int argc, char *argv[], const char *prog_name)
     int solve_verbose_mode = (verbose_level >= 2);
     int debug_mode = (verbose_level >= 2);
 
-    if (!rand_mode && (random_nvars_given || random_density_given || random_seed_given)) {
-        fprintf(stderr, "Error: -n/--nvars, --density, and --seed may only be used together with --random.\n");
+    if (!rand_mode && (random_nvars_given || random_density_given ||
+                       random_seed_given || random_homogeneous)) {
+        fprintf(stderr, "Error: -n/--nvars, --density, --seed, and --homogeneous may only be used together with --random.\n");
         return 1;
     }
 
@@ -3609,8 +3643,11 @@ int drsolve_cli_main(int argc, char *argv[], const char *prog_name)
         if (comp_mode) {
             char *gen_elim = NULL, *gen_allvars = NULL, *gen_remaining = NULL;
 
-            rand_comp_spec = build_random_system_spec(deg_str, nvars_rand, random_density,
-                                                      random_seed_given, random_seed);
+            rand_comp_spec = build_random_system_spec(deg_str, nvars_rand,
+                                                      random_density,
+                                                      random_homogeneous,
+                                                      random_seed_given,
+                                                      random_seed);
             if (!rand_comp_spec ||
                 !build_random_system_strings(nvars_rand, num_elim_rand,
                                              &gen_elim, &gen_allvars, &gen_remaining)) {
@@ -3634,8 +3671,11 @@ int drsolve_cli_main(int argc, char *argv[], const char *prog_name)
                     printf("%ld", degrees_rand[i]);
                 }
                 printf("]\n");
-                printf("Density: %.2f%% of all monomials up to each polynomial degree\n",
+                printf(random_homogeneous
+                           ? "Density: %.2f%% of monomials at each polynomial degree\n"
+                           : "Density: %.2f%% of all monomials up to each polynomial degree\n",
                        random_density * 100.0);
+                if (random_homogeneous) printf("Homogeneous: yes\n");
                 if (random_seed_given) {
                     printf("Seed: %lu\n", random_seed);
                 }
@@ -3665,6 +3705,7 @@ int drsolve_cli_main(int argc, char *argv[], const char *prog_name)
                                    degrees_rand, npolys_rand,
                                    nvars_rand, num_elim_rand,
                                    random_density,
+                                   random_homogeneous,
                                    random_seed_given, random_seed,
                                    silent_mode,
                                    &gen_polys, &gen_elim, &gen_allvars);
@@ -3673,6 +3714,7 @@ int drsolve_cli_main(int argc, char *argv[], const char *prog_name)
                                    degrees_rand, npolys_rand,
                                    nvars_rand, num_elim_rand,
                                    random_density,
+                                   random_homogeneous,
                                    random_seed_given, random_seed,
                                    p_fmpz,
                                    silent_mode,
@@ -3682,6 +3724,7 @@ int drsolve_cli_main(int argc, char *argv[], const char *prog_name)
                                    degrees_rand, npolys_rand,
                                    nvars_rand, num_elim_rand,
                                    random_density,
+                                   random_homogeneous,
                                    random_seed_given, random_seed,
                                    ctx,
                                    silent_mode,

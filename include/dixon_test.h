@@ -66,6 +66,9 @@ slong count_possible_monomials(slong nvars, slong npars, slong max_degree);
 void enumerate_all_monomials(monomial_t **monomials, slong *count, 
                             slong total_indeterminates, slong max_degree);
 
+void enumerate_homogeneous_monomials(monomial_t **monomials, slong *count,
+                                     slong total_indeterminates, slong degree);
+
 void generate_random_polynomial(fq_mvpoly_t *poly, slong nvars, slong npars,
                                slong max_degree, double density_ratio,
                                const fq_nmod_ctx_t ctx, flint_rand_t state);
@@ -74,6 +77,13 @@ void generate_polynomial_system(fq_mvpoly_t **polys, slong nvars, slong npolys,
                                slong npars, const slong *degrees,
                                double density_ratio,
                                const fq_nmod_ctx_t ctx, flint_rand_t state);
+
+void generate_homogeneous_polynomial_system(fq_mvpoly_t **polys, slong nvars,
+                                            slong npolys, slong npars,
+                                            const slong *degrees,
+                                            double density_ratio,
+                                            const fq_nmod_ctx_t ctx,
+                                            flint_rand_t state);
 
 // Test Functions
 void test_dixon_system(const char *test_name, slong nvars, slong npars,

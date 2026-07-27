@@ -4336,7 +4336,7 @@ void extract_fq_coefficient_matrix_from_dixon(fq_mvpoly_t ***coeff_matrix,
         }
     }
 
-coefficient_matrix_selected:
+coefficient_matrix_selected: ;
 
     slong submat_rank = FLINT_MIN(num_rows, num_cols);
 

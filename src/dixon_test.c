@@ -925,10 +925,37 @@ void enumerate_all_monomials(monomial_t **monomials, slong *count,
     free(temp_exp);
 }
 
+void enumerate_homogeneous_monomials(monomial_t **monomials, slong *count,
+                                     slong total_indeterminates, slong degree) {
+    slong max_possible;
+    slong *temp_exp;
+
+    *monomials = NULL;
+    *count = 0;
+    if (total_indeterminates <= 0 || degree < 0) return;
+
+    max_possible = binomial_coefficient(total_indeterminates + degree - 1, degree);
+    *monomials = (monomial_t *) malloc((size_t) max_possible * sizeof(monomial_t));
+    if (!*monomials) return;
+
+    temp_exp = (slong *) calloc((size_t) total_indeterminates, sizeof(slong));
+    if (!temp_exp) {
+        free(*monomials);
+        *monomials = NULL;
+        return;
+    }
+    enumerate_all_monomials_recursive(*monomials, count, total_indeterminates,
+                                      temp_exp, 0, degree);
+    free(temp_exp);
+}
+
 // Improved polynomial generation with better density control
-void generate_random_polynomial(fq_mvpoly_t *poly, slong nvars, slong npars,
-                               slong max_degree, double density_ratio,
-                               const fq_nmod_ctx_t ctx, flint_rand_t state) {
+static void generate_random_polynomial_mode(fq_mvpoly_t *poly, slong nvars,
+                                            slong npars, slong max_degree,
+                                            double density_ratio,
+                                            int homogeneous,
+                                            const fq_nmod_ctx_t ctx,
+                                            flint_rand_t state) {
     
     fq_mvpoly_init(poly, nvars, npars, ctx);
     
@@ -937,7 +964,13 @@ void generate_random_polynomial(fq_mvpoly_t *poly, slong nvars, slong npars,
     // Generate all possible monomials
     monomial_t *all_monomials;
     slong total_monomials;
-    enumerate_all_monomials(&all_monomials, &total_monomials, total_indeterminates, max_degree);
+    if (homogeneous) {
+        enumerate_homogeneous_monomials(&all_monomials, &total_monomials,
+                                        total_indeterminates, max_degree);
+    } else {
+        enumerate_all_monomials(&all_monomials, &total_monomials,
+                                total_indeterminates, max_degree);
+    }
     
     if (!g_bezout_test_quiet_mode) {
         printf("    Total possible monomials: %ld\n", total_monomials);
@@ -1029,11 +1062,21 @@ void generate_random_polynomial(fq_mvpoly_t *poly, slong nvars, slong npars,
     }
 }
 
-// Generate polynomial system with specified degrees and density
-void generate_polynomial_system(fq_mvpoly_t **polys, slong nvars, slong npolys, 
-                               slong npars, const slong *degrees,
-                               double density_ratio,
+void generate_random_polynomial(fq_mvpoly_t *poly, slong nvars, slong npars,
+                               slong max_degree, double density_ratio,
                                const fq_nmod_ctx_t ctx, flint_rand_t state) {
+    generate_random_polynomial_mode(poly, nvars, npars, max_degree,
+                                    density_ratio, 0, ctx, state);
+}
+
+// Generate polynomial system with specified degrees and density
+static void generate_polynomial_system_mode(fq_mvpoly_t **polys, slong nvars,
+                                            slong npolys, slong npars,
+                                            const slong *degrees,
+                                            double density_ratio,
+                                            int homogeneous,
+                                            const fq_nmod_ctx_t ctx,
+                                            flint_rand_t state) {
     
     if (degrees == NULL) {
         printf("Error: degrees array cannot be NULL\n");
@@ -1056,11 +1099,30 @@ void generate_polynomial_system(fq_mvpoly_t **polys, slong nvars, slong npolys,
         // First few polynomials include parameters
         slong poly_npars = npars;
         
-        generate_random_polynomial(&(*polys)[i], nvars, poly_npars, 
-                                  max_degree, density_ratio, ctx, state);
+        generate_random_polynomial_mode(&(*polys)[i], nvars, poly_npars,
+                                        max_degree, density_ratio, homogeneous,
+                                        ctx, state);
         
     }
     
+}
+
+void generate_polynomial_system(fq_mvpoly_t **polys, slong nvars, slong npolys,
+                               slong npars, const slong *degrees,
+                               double density_ratio,
+                               const fq_nmod_ctx_t ctx, flint_rand_t state) {
+    generate_polynomial_system_mode(polys, nvars, npolys, npars, degrees,
+                                    density_ratio, 0, ctx, state);
+}
+
+void generate_homogeneous_polynomial_system(fq_mvpoly_t **polys, slong nvars,
+                                            slong npolys, slong npars,
+                                            const slong *degrees,
+                                            double density_ratio,
+                                            const fq_nmod_ctx_t ctx,
+                                            flint_rand_t state) {
+    generate_polynomial_system_mode(polys, nvars, npolys, npars, degrees,
+                                    density_ratio, 1, ctx, state);
 }
 
 // ============= Test Functions =============

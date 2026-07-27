@@ -9,7 +9,7 @@
 #include "drsolve_cli.h"
 #include "fmpq_acb_roots.h"
 
-#define PROGRAM_VERSION "0.4.4"
+#define PROGRAM_VERSION "0.4.5"
 #define DEFAULT_OUTPUT_DIR "out"
 
 /* =========================================================================
@@ -195,11 +195,13 @@ void drsolve_cli_print_usage(const char *prog_name)
     printf("    Example: %s -r \"[3]*3\" 257\n", prog_name);
     printf("    Example: %s -r -n 4 --density 0.5 \"[3]*3\" 257\n", prog_name);
     printf("    Example: %s -r --seed 12345 \"[3]*3\" 257\n", prog_name);
+    printf("    Example: %s -r --homogeneous --density 0.5 \"[3]*3\" 257\n", prog_name);
     printf("    Example: %s -r \"[2]*4+[3]*2\" 257\n", prog_name);
     printf("    Example: %s -r -s \"[2]*3\" 257\n", prog_name);
     printf("    Example: %s -r --comp --omega 2.81 \"[2]*3\" 257\n", prog_name);
     printf("    -> Add -n <num_vars> to set the total variable count (must satisfy num_vars >= #equations-1)\n");
     printf("    -> Add --density <ratio> with 0 <= ratio <= 1 to choose the fraction of all monomials used (default: 0.5 over F2, otherwise 1)\n");
+    printf("    -> Add --homogeneous (alias --hom) to use only monomials whose total degree equals the requested degree\n");
     printf("    -> Add --seed <num> to generate the same random system reproducibly across runs\n");
     printf("    -> Mixed degree specs such as \"[2]*5+[3]*6\" are supported\n");
     printf("\n");
@@ -312,6 +314,8 @@ static int validate_cli_options(int argc, char *argv[])
         {"comp", no_argument, NULL, 'c'},
         {"complexity", no_argument, NULL, 'c'},
         {"random", no_argument, NULL, 'r'},
+        {"homogeneous", no_argument, NULL, OPT_FLAG},
+        {"hom", no_argument, NULL, OPT_FLAG},
         {"ideal", no_argument, NULL, OPT_FLAG},
         {"field-equation", no_argument, NULL, OPT_FLAG},
         {"field-equation-s", no_argument, NULL, OPT_FLAG},
