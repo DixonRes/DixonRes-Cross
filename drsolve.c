@@ -75,7 +75,7 @@ static void print_short_usage(const char *prog_name)
     printf("  --max-primes <n>  Maximum primes for rational reconstruction (Q default: 64; large-prime fallback: 256)\n");
     printf("  --test <n>        Run built-in tests (1: Dixon matrix size, 2: Bezout bound, 3: solver correctness, 4: performance)\n");
     printf("  --time            Print per-step timing information\n");
-    printf("  -v, --verbose <n> Verbosity level (0:silent, 1:default, 2:detailed, 3:debug)\n");
+    printf("  -v, --verbose <n> Verbosity level (0:silent, 1:default, 2:detailed, 3:debug, 4:matrix)\n");
     printf("  -h, --help        Show full detailed help information\n");
     printf("  -V, --version     Print version and build information\n");
 }
@@ -210,15 +210,17 @@ void drsolve_cli_print_usage(const char *prog_name)
     printf("    %s -v 1 <args>\n", prog_name);
     printf("    %s -v 2 <args>\n", prog_name);
     printf("    %s -v 3 <args>\n", prog_name);
+    printf("    %s -v 4 <args>\n", prog_name);
     printf("    Example: %s -v 0 \"x+y^2+t, x*y+t*y+1\" \"y\" 2^8\n", prog_name);
     printf("    Example: %s -v 1 \"x+y+z, x*y+y*z+z*x, x*y*z+1\" \"x,y\" 257\n", prog_name);
     printf("    Example: %s -v 2 -s \"x^2-1, y-x\" 257\n", prog_name);
     printf("    Example: %s -v 3 \"x+y+z, x*y+y*z+z*x, x*y*z+1\" \"x,y\" 257\n", prog_name);
+    printf("    Example: %s -v 4 -r \"[3]*3\" 257\n", prog_name);
     printf("    -> `-v 0` matches `--silent` and prints nothing\n");
     printf("    -> `-v 1` is the default output level\n");
     printf("    -> `-v 2` matches the old `--debug` output and also enables per-step timing\n");
-    printf("    -> `-v 2` also prints detailed profiling for recursive Dixon construction (block counts, tuple counts, per-phase timings)\n");
-    printf("    -> `-v 3` additionally prints the cancellation matrix, Dixon matrix, maximal-rank submatrix when each is <= 10 x 10, plus recursive fast-Dixon trace lines\n");
+    printf("    -> `-v 3` prints detailed profiling for Dixon construction\n");
+    printf("    -> `-v 4` additionally prints the cancellation matrix, Dixon matrix, maximal-rank submatrix when each is <= 100 x 100, plus recursive fast-Dixon trace lines\n");
     printf("\n");
 
     printf("  Diagnostics:\n");
