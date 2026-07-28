@@ -769,7 +769,7 @@ static int parse_verbose_level(const char *value, int *verbose_level)
     long parsed = strtol(value, &endptr, 10);
 
     if (!value || !verbose_level) return 0;
-    if (!endptr || *endptr != '\0' || parsed < 0 || parsed > 3) {
+    if (!endptr || *endptr != '\0' || parsed < 0) {
         return 0;
     }
 
