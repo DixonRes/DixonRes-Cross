@@ -1340,6 +1340,9 @@ int test_polynomial_solver_correctness(void)
     };
     const slong repetitions = 8;
     const double density_ratio = 1.0;
+    const ulong seed_base = (ulong) time(NULL) ^
+                            ((ulong) clock() << 16) ^
+                            (ulong) getpid();
     solver_correctness_stats_t stats[4][4];
     slong total_cases = 0;
     slong total_passed = 0;
@@ -1350,6 +1353,7 @@ int test_polynomial_solver_correctness(void)
 
     printf("=== Polynomial Solver Correctness Test ===\n\n");
     printf("Random systems per combination: %ld\n", repetitions);
+    printf("Random seed: %lu\n", seed_base);
     printf("Degree sets: 4\n");
     printf("Fields: 4\n");
     printf("Total cases: %ld\n\n", (slong) (4 * 4 * repetitions));
@@ -1365,7 +1369,7 @@ int test_polynomial_solver_correctness(void)
 
             for (slong rep = 0; rep < repetitions; rep++) {
                 char *polys_str = NULL;
-                ulong seed = 1000003UL + (ulong) (d * 1000 + f * 100 + rep);
+                ulong seed = seed_base + (ulong) (d * 1000 + f * 100 + rep);
 
                 printf("  Progress %ld/%ld\r", total_cases + 1, (slong) (4 * 4 * repetitions));
                 fflush(stdout);
