@@ -19,15 +19,6 @@
 
 #include "dixon_recursive.h"
 
-#include <stdarg.h>
-#include <string.h>
-
-#include "dixon_flint.h"
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
 double get_wall_time(void);
 
 typedef struct {

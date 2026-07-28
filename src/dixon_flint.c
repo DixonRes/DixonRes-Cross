@@ -6,13 +6,6 @@
  */
 
 #include "dixon_flint.h"
-#include "dixon_complexity.h"
-#include <stdarg.h>
-#include <limits.h>
-#include <sys/time.h>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 // Global method selection variable definitions
 det_method_t dixon_global_method_step1 = -1;

@@ -1,7 +1,6 @@
 /* unified_mpoly_det.c - Implementation of unified polynomial matrix determinant computation */
 
 #include "unified_mpoly_det.h"
-#include "dixon_flint.h"
 
 typedef struct {
     ulong mask;

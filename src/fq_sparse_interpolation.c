@@ -1,20 +1,4 @@
 #include "fq_sparse_interpolation.h"
-#include "nmod_vec_extra.h"
-#include <flint/nmod_vec.h>
-#include <flint/nmod_poly.h>  /* nmod_poly_divrem/mul/sub for Euclidean BM */
-
-#include <limits.h>
-#include <stdarg.h>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
-#define SPARSE_BASE_RECOVERY_ATTEMPTS 24
-#define SPARSE_DEFAULT_START_BUDGET 32
-#define SPARSE_ESTIMATE_CAP ((slong) (LONG_MAX / 4))
-#define SPARSE_FAST_ROOT_THRESHOLD 64
-#define SPARSE_FAST_ROOT_SPLIT_ATTEMPTS 12
-#define SPARSE_BM_HIST_BINS 11
 
 typedef int (*sparse_probe_fn_t)(mp_limb_t* a,
                                  mp_limb_t* h,

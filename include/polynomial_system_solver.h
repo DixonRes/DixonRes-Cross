@@ -6,6 +6,8 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include <ctype.h>
+#include <stdarg.h>
 
 // Include the existing headers
 #include "dixon_flint.h"

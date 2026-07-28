@@ -2,7 +2,15 @@
 #define DIXON_RECURSIVE_H
 
 #include <flint/flint.h>
+
+#include <stdarg.h>
+#include <string.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 #include "fq_mvpoly.h"
+#include "dixon_flint.h"
 
 void fq_dixon_fast_resultant(fq_mvpoly_t *result, fq_mvpoly_t *polys,
                              slong nvars, slong npars);

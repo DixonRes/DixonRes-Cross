@@ -1,10 +1,4 @@
 #include "fmpq_acb_roots.h"
-#include "dixon_flint.h"
-#include <flint/arith.h>
-#include <flint/acb_poly.h>
-#include <flint/arb.h>
-#include <stdarg.h>
-#include <time.h>
 
 extern int g_dixon_verbose_level;
 extern rational_root_scan_mode_t g_rational_root_scan_mode;

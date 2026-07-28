@@ -1,10 +1,19 @@
 #ifndef COMPLEX_SOLVER_H
 #define COMPLEX_SOLVER_H
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include <stdio.h>
+#include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
+#include <flint/fmpq_poly.h>
 
 #include "fmpq_acb_roots.h"
-#include "flint/fmpq_poly.h"
+#include "dixon_interface_flint.h"
+#include "rational_system_solver.h"
 
 /*
  * Initial complex-solver module.

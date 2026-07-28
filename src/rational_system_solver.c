@@ -1,21 +1,10 @@
-﻿#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
 #include "rational_system_solver.h"
-#include <ctype.h>
-#include <limits.h>
-#include <stdarg.h>
 
 static int rational_solver_realtime_progress_enabled = 0;
 static int rational_solver_internal_trace_enabled = 0;
 static int rational_solver_exact_only_enabled = 0;
 
-#define RATIONAL_REAL_ROOT_PREC 256
-#define RATIONAL_REAL_ROOT_DIGITS 20
-#define RATIONAL_NUMERIC_NEWTON_TOL 1e-10
-#define RATIONAL_NUMERIC_VERIFY_TOL 1e-7
-#define RATIONAL_NUMERIC_NEWTON_MAX_ITER 60
+
 static const slong rational_candidate_print_limit = 10;
 
 static int rational_solver_info_enabled(void) {

@@ -20,6 +20,7 @@
 #include <flint/fmpz_mat.h>
 #include <flint/profiler.h>
 
+#include "unified_mpoly_interface.h"
 #include "fq_unified_interface.h"
 
 /* ============================================================================
@@ -146,6 +147,16 @@ void fq_mvpoly_to_fq_nmod_mpoly(fq_nmod_mpoly_t mpoly, const fq_mvpoly_t *poly,
 void fq_nmod_mpoly_to_fq_mvpoly(fq_mvpoly_t *poly, const fq_nmod_mpoly_t mpoly,
                                 slong nvars, slong npars, 
                                 fq_nmod_mpoly_ctx_t mpoly_ctx, const fq_nmod_ctx_t ctx);
+
+// Convert fq_mvpoly to nmod_mpoly for prime fields
+void fq_mvpoly_to_nmod_mpoly(nmod_mpoly_t mpoly, const fq_mvpoly_t *poly, 
+                            nmod_mpoly_ctx_t mpoly_ctx);
+
+// Convert nmod_mpoly to fq_mvpoly
+void nmod_mpoly_to_fq_mvpoly(fq_mvpoly_t *result, const nmod_mpoly_t poly,
+                            slong nvars, slong npars,
+                            const nmod_mpoly_ctx_t mpoly_ctx,
+                            const fq_nmod_ctx_t field_ctx);
 
 /* ============================================================================
  * Kronecker Substitution Helpers

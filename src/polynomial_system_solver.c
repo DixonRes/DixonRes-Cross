@@ -1,6 +1,4 @@
 #include "polynomial_system_solver.h"
-#include <ctype.h>
-#include <stdarg.h>
 
 static int solver_realtime_progress_enabled = 0;
 static int solver_internal_trace_enabled = 0;

@@ -11,6 +11,13 @@
 #include <flint/fmpz_poly_factor.h>
 #include <flint/acb.h>
 #include <flint/acb_poly.h>
+#include <flint/arith.h>
+#include <flint/acb_poly.h>
+#include <flint/arb.h>
+#include <stdarg.h>
+#include <time.h>
+
+#include "dixon_flint.h"
 
 #ifndef DRSOLVE_HAVE_ARB_FMPZ_POLY_REAL_ROOTS
 #  if defined(__FLINT_RELEASE) && (__FLINT_RELEASE >= 30600)

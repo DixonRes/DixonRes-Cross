@@ -2,11 +2,6 @@
 
 #include "fq_poly_mat_det.h"
 
-#ifdef HAVE_PML
-#include <flint/nmod_mat.h>
-#include "pml_det.h"
-#endif
-
 extern int g_dixon_debug_mode;
 
 /* ============================================================================

@@ -1,25 +1,4 @@
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
 #include "large_prime_system_solver.h"
-
-#include "dixon_interface_flint.h"
-#include "rational_system_solver.h"
-
-#include <ctype.h>
-#include <stdarg.h>
-
-#include <flint/flint.h>
-#include <flint/fmpz_mod.h>
-#include <flint/fmpz_mod_mpoly.h>
-#include <flint/fmpz_mod_poly.h>
-#include <flint/fmpz_mod_poly_factor.h>
-
-#define LP_SOLVE_ERROR   (-1)
-#define LP_SOLVE_NONE    0
-#define LP_SOLVE_FOUND   1
-#define LP_SOLVE_DIMPOS  2
 
 typedef struct {
     fmpz_t *values;

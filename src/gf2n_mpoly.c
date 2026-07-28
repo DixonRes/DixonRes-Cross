@@ -10,14 +10,6 @@ void gf2n_mpoly_set_array_limit_k(int k)
 {
     gf2n_mpoly_array_limit_k = k;
 }
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <time.h>
-#endif
-#if DIXON_X86_SIMD
-#include <emmintrin.h>  /* SSE2 */
-#endif
 
 /* ============================================================================
    HELPER: multi-word packed exponent field access (N <= 2)

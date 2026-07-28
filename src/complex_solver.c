@@ -1,14 +1,4 @@
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
 #include "complex_solver.h"
-#include "dixon_interface_flint.h"
-#include "rational_system_solver.h"
-
-#include <ctype.h>
-#include <stdlib.h>
-#include <string.h>
 
 static int complex_solver_roots_reserve(complex_solver_roots_t *roots, slong need)
 {

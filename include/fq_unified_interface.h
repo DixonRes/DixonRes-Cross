@@ -10,6 +10,8 @@
 #include <flint/fq_nmod_poly.h>
 #include <flint/fq_zech.h>  /* Add Zech support */
 #include <flint/nmod.h>
+#include <stdatomic.h>
+
 #include "gf2n_field.h"
 #include "gf2n_poly.h"
 #ifdef __cplusplus

@@ -6,6 +6,8 @@
 #include <string.h>
 #include <time.h>
 #include <assert.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "dixon_flint.h"
 #include "dixon_interface_flint.h"
@@ -16,6 +18,7 @@
 #include "resultant_with_ideal_reduction.h"
 #include "dixon_complexity.h"
 #include "polynomial_system_solver.h"
+#include "large_prime_system_solver.h"
 
 #ifdef __cplusplus
 extern "C" {

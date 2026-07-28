@@ -7,12 +7,26 @@
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
+#include <stdarg.h>
+#include <fcntl.h>
+#include <sys/time.h>
+#include <unistd.h>
+
 #include <flint/flint.h>
 #include <flint/fq_nmod.h>
 #include <flint/fq_nmod_poly.h>
 #include <flint/fq_nmod_mat.h>
 #include <flint/fmpz.h>
 #include <flint/fq_nmod_poly_factor.h>
+#include <flint/arith.h>
+#include <flint/fmpq.h>
+#include <flint/fmpq_poly.h>
+#include <flint/fmpz_poly.h>
+
+#include "dixon_complexity.h"
+#include "dixon_recursive.h"
+#include "fq_multivariate_interpolation.h"
+#include "fq_poly_mat_det.h"
 #include "unified_mpoly_resultant.h"
 #include "fq_nmod_roots.h"
 #include "fmpq_acb_roots.h"

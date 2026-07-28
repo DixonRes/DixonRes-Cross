@@ -3,6 +3,7 @@
 
 #include <flint/flint.h>
 #include "fq_mvpoly.h"
+#include "dixon_flint.h"
 
 void fq_macaulay_resultant(fq_mvpoly_t *result, fq_mvpoly_t *polys,
                            slong nvars, slong npars);

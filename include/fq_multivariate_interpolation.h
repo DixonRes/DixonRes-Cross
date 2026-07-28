@@ -13,8 +13,8 @@
 #include <flint/fq_nmod.h>
 #include <string.h>
 #include <time.h>
-#include "fq_mat_det.h"
 #include "fq_mvpoly.h"
+#include "fq_mat_det.h"
 
 // OpenMP support (optional)
 #ifdef _OPENMP

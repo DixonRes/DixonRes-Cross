@@ -1,17 +1,5 @@
 // Complete fixed Dixon resultant string interface implementation
 #include "dixon_interface_flint.h"
-#include "dixon_complexity.h"
-#include "dixon_recursive.h"
-#include "fq_multivariate_interpolation.h"
-#include "fq_poly_mat_det.h"
-#include <flint/arith.h>
-#include <flint/fmpq.h>
-#include <flint/fmpq_poly.h>
-#include <flint/fmpz_poly.h>
-#include <stdarg.h>
-#include <fcntl.h>
-#include <sys/time.h>
-#include <unistd.h>
 
 // Fixed string parser implementation
 

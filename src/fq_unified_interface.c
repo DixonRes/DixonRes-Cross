@@ -10,6 +10,7 @@ static void field_ctx_report_backend_once(const field_ctx_t *ctx, ulong prime, s
     static __thread ulong last_prime = 0;
     static __thread slong last_degree = -1;
     static __thread const void *last_ctx_ptr = NULL;
+    static atomic_flag reported = ATOMIC_FLAG_INIT;
 
     if (g_dixon_verbose_level < 3 || ctx == NULL || ctx->description == NULL)
         return;
@@ -25,8 +26,9 @@ static void field_ctx_report_backend_once(const field_ctx_t *ctx, ulong prime, s
     last_degree = degree;
     last_ctx_ptr = ctx->ctx.fq_ctx;
 
-    printf("Field backend: %s (p=%lu, degree=%ld)\n",
-           ctx->description, prime, degree);
+    if (!atomic_flag_test_and_set(&reported)) {
+        printf("Field backend: %s (p=%lu, degree=%ld)\n", ctx->description, prime, degree);
+    }
 }
 
 static int gf216_native_modulus_supported(const fq_nmod_ctx_t fq_ctx)

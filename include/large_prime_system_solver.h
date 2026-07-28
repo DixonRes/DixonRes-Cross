@@ -1,9 +1,29 @@
 #ifndef LARGE_PRIME_SYSTEM_SOLVER_H
 #define LARGE_PRIME_SYSTEM_SOLVER_H
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
+#include "dixon_interface_flint.h"
+#include "rational_system_solver.h"
+
+#include <ctype.h>
+#include <stdarg.h>
 #include <stdio.h>
+
 #include <flint/fmpz.h>
+#include <flint/flint.h>
 #include <flint/fmpz_mod.h>
+#include <flint/fmpz_mod_mpoly.h>
+#include <flint/fmpz_mod_poly.h>
+#include <flint/fmpz_mod_poly_factor.h>
+
+#define LP_SOLVE_ERROR   (-1)
+#define LP_SOLVE_NONE    0
+#define LP_SOLVE_FOUND   1
+#define LP_SOLVE_DIMPOS  2
+
 
 #ifdef __cplusplus
 extern "C" {

@@ -20,10 +20,10 @@ DixonComplexity(F, elim_vars, ...)
 DixonIdeal(F, ideal_gens, elim_vars, ...)
     Compute a resultant with ideal reduction.
     
-set_dixon_path(path)
+set_drsolve_path(path)
     Set the default `drsolve` executable path.
 
-get_dixon_path()
+get_drsolve_path()
     Return the current default executable path.
 
 Common options
@@ -72,7 +72,7 @@ Basic
 -----
 
 load("drsolve_sage_interface.sage")
-set_dixon_path("./drsolve")
+set_drsolve_path("./drsolve")
 
 R.<x, y, z> = GF(257)[]
 F = [x + y + z - 3, x*y + y*z + z*x - 3, x*y*z - 1]
@@ -85,7 +85,7 @@ Iterative elimination
 ---------------------
 
 load("drsolve_sage_interface.sage")
-set_dixon_path("./drsolve")
+set_drsolve_path("./drsolve")
 R.<x, y, z> = GF(17)[]
 f1 = x + y + z
 f2 = x*y + y*z + z*x + 1
@@ -100,7 +100,7 @@ Method selection
 ----------------
 
 load("drsolve_sage_interface.sage")
-set_dixon_path("./drsolve")
+set_drsolve_path("./drsolve")
 
 R.<x, y, z> = GF(257)[]
 F = [x + y + z - 3, x*y + y*z + z*x - 3, x*y*z - 1]
@@ -117,7 +117,7 @@ Ideal reduction
 ---------------
 
 load("drsolve_sage_interface.sage")
-set_dixon_path("./drsolve")
+set_drsolve_path("./drsolve")
 
 R.<x0, x1, x2> = GF(257)[]
 F = [x0^2 + x1^2 + x2^2 - 10, x2^3 - x0*x1 - 3]
@@ -130,7 +130,7 @@ Extension field
 ---------------
 
 load("drsolve_sage_interface.sage")
-set_dixon_path("./drsolve")
+set_drsolve_path("./drsolve")
 
 K.<z8> = GF(2^8, modulus=x^8 + x^4 + x^3 + x + 1)
 R.<x, y> = PolynomialRing(K, 2)
@@ -145,7 +145,7 @@ Rational solving
 ----------------
 
 load("drsolve_sage_interface.sage")
-set_dixon_path("./drsolve")
+set_drsolve_path("./drsolve")
 
 R.<x, y> = QQ[]
 F = [x^2 - 1, y - x]
@@ -166,35 +166,35 @@ from itertools import product as _iproduct
 
 
 # ---------------------------------------------------------------------------
-# Global default path — set once with set_dixon_path()
+# Global default path — set once with set_drsolve_path()
 # ---------------------------------------------------------------------------
 
-_default_dixon_path = "drsolve"
+_default_drsolve_path = "drsolve"
 
-def set_dixon_path(path):
+def set_drsolve_path(path):
     """
     Set the default path to the drsolve binary for all subsequent calls.
 
     Example
     -------
-        set_dixon_path("./drsolve")
-        set_dixon_path("/usr/local/bin/drsolve")
+        set_drsolve_path("./drsolve")
+        set_drsolve_path("/usr/local/bin/drsolve")
     """
-    global _default_dixon_path
-    _default_dixon_path = path
+    global _default_drsolve_path
+    _default_drsolve_path = path
 
-def get_dixon_path():
+def get_drsolve_path():
     """Return the currently configured default drsolve binary path."""
-    return _default_dixon_path
+    return _default_drsolve_path
 
-def _resolve_dixon_path(dixon_path):
+def _resolve_drsolve_path(drsolve_path):
     """
-    Return *dixon_path* if explicitly supplied (not None), otherwise fall back
-    to the module-level default set by set_dixon_path().
+    Return *drsolve_path* if explicitly supplied (not None), otherwise fall back
+    to the module-level default set by set_drsolve_path().
     """
-    if dixon_path is not None:
-        return dixon_path
-    return _default_dixon_path
+    if drsolve_path is not None:
+        return drsolve_path
+    return _default_drsolve_path
 
 
 # ---------------------------------------------------------------------------
@@ -373,7 +373,7 @@ def _run(cmd, timeout, debug, live_output=False):
     except FileNotFoundError:
         raise RuntimeError(
             "drsolve binary not found: '%s'.\n"
-            "Set the correct path with set_dixon_path(...) or pass dixon_path=..." % cmd[0]
+            "Set the correct path with set_drsolve_path(...) or pass drsolve_path=..." % cmd[0]
         )
     except subprocess.TimeoutExpired:
         raise RuntimeError("drsolve timed out after %d s." % timeout)
@@ -684,7 +684,7 @@ def _run_file_mode(
     api_name,
     writer,
     parser,
-    dixon_path,
+    drsolve_path,
     cmd_prefix,
     finput,
     foutput,
@@ -701,7 +701,7 @@ def _run_file_mode(
         foutput = _make_temp_path("drsolve_", ".out")
 
     writer(finput)
-    cmd = [dixon_path] + list(cmd_prefix) + ["-f", finput, "-o", foutput]
+    cmd = [drsolve_path] + list(cmd_prefix) + ["-f", finput, "-o", foutput]
     proc = _run(cmd, timeout, debug, live_output=live_output)
 
     if proc.returncode != 0:
@@ -877,7 +877,7 @@ def DixonRes(
     F,
     elim_vars,
     field_size=None,
-    dixon_path=None,
+    drsolve_path=None,
     finput=None,
     foutput=None,
     debug=False,
@@ -907,9 +907,9 @@ def DixonRes(
     field_size : prime, prime power, (p,k), GF(...), or 0 for Q.
                  If None (default), inferred from the first Sage polynomial
                  in F; must be supplied explicitly when F is all strings.
-    dixon_path : path to the drsolve executable.
+    drsolve_path : path to the drsolve executable.
                  If None (default), uses the global default set by
-                 set_dixon_path() (initially "./drsolve").
+                 set_drsolve_path() (initially "./drsolve").
     finput     : temporary input file path; autogenerated when None
     foutput    : output file path; autogenerated when None
     debug      : print wrapper-level diagnostics; does not change drsolve verbosity
@@ -933,14 +933,14 @@ def DixonRes(
 
     Example – iterative elimination
     --------------------------------
-        set_dixon_path("./drsolve")
+        set_drsolve_path("./drsolve")
         R.<x, y, z> = GF(257)[]
         F = [x + y + z, x*y + y*z + z*x, x*y*z + 1]
 
         res  = DixonRes(F, [x, y])
         res2 = DixonRes([res, str(z)], ["z"], field_size=257)
     """
-    dixon_path = _resolve_dixon_path(dixon_path)
+    drsolve_path = _resolve_drsolve_path(drsolve_path)
     field_size = _infer_field_size(F, field_size)
     cmd_prefix = _build_common_cli_flags(
         verbosity=verbosity,
@@ -959,7 +959,7 @@ def DixonRes(
         "DixonRes",
         lambda path: ToDixon(F, elim_vars, field_size, path, debug=debug),
         _parse_resultant_file,
-        dixon_path,
+        drsolve_path,
         cmd_prefix,
         finput,
         foutput,
@@ -972,7 +972,7 @@ def DixonRes(
 def DixonSolve(
     F,
     field_size=None,
-    dixon_path=None,
+    drsolve_path=None,
     finput=None,
     foutput=None,
     debug=False,
@@ -998,9 +998,9 @@ def DixonSolve(
     ----------
     F          : list of Sage polynomials and/or plain strings
     field_size : prime or prime power; inferred from F[0].base_ring() if None
-    dixon_path : path to the drsolve executable.
+    drsolve_path : path to the drsolve executable.
                  If None (default), uses the global default set by
-                 set_dixon_path() (initially "./drsolve").
+                 set_drsolve_path() (initially "./drsolve").
     finput     : temporary input file; autogenerated when None
     foutput    : output file path; autogenerated when None
     debug      : print wrapper-level diagnostics; does not change drsolve verbosity
@@ -1026,7 +1026,7 @@ def DixonSolve(
     "infinite"                           positive-dimensional system
     None                                 failure
     """
-    dixon_path = _resolve_dixon_path(dixon_path)
+    drsolve_path = _resolve_drsolve_path(drsolve_path)
     field_size = _infer_field_size(F, field_size)
 
     cmd_prefix = _build_common_cli_flags(
@@ -1052,7 +1052,7 @@ def DixonSolve(
         "DixonSolve",
         lambda path: ToDixonSolver(F, field_size, path, debug=debug),
         _parse_solutions_file,
-        dixon_path,
+        drsolve_path,
         cmd_prefix,
         finput,
         foutput,
@@ -1067,7 +1067,7 @@ def DixonComplexity(
     elim_vars,
     field_size=None,
     omega=None,
-    dixon_path=None,
+    drsolve_path=None,
     finput=None,
     foutput=None,
     debug=False,
@@ -1093,9 +1093,9 @@ def DixonComplexity(
     elim_vars  : variables to eliminate
     field_size : prime or prime power; inferred from F if None
     omega      : matrix-multiplication exponent (default: drsolve built-in)
-    dixon_path : path to the drsolve executable.
+    drsolve_path : path to the drsolve executable.
                  If None (default), uses the global default set by
-                 set_dixon_path() (initially "./drsolve").
+                 set_drsolve_path() (initially "./drsolve").
     finput     : temporary input file; autogenerated when None
     foutput    : output file path; autogenerated when None
     debug      : print wrapper-level diagnostics; does not change drsolve verbosity
@@ -1117,7 +1117,7 @@ def DixonComplexity(
     dict with keys: complexity_log2, omega, bezout_bound, matrix_size, degrees
     None on failure
     """
-    dixon_path = _resolve_dixon_path(dixon_path)
+    drsolve_path = _resolve_drsolve_path(drsolve_path)
     field_size = _infer_field_size(F, field_size)
     if field_size == 0 or field_size is None:
         field_size = 257   # complexity mode needs a finite field
@@ -1142,7 +1142,7 @@ def DixonComplexity(
         "DixonComplexity",
         lambda path: ToDixon(F, elim_vars, field_size, path, debug=debug),
         _parse_complexity_file,
-        dixon_path,
+        drsolve_path,
         cmd_prefix,
         finput,
         foutput,
@@ -1157,7 +1157,7 @@ def DixonIdeal(
     ideal_gens,
     elim_vars,
     field_size=None,
-    dixon_path=None,
+    drsolve_path=None,
     finput=None,
     foutput=None,
     debug=False,
@@ -1187,9 +1187,9 @@ def DixonIdeal(
                  - strings like "a^3=2*b+1" for backward compatibility
     elim_vars  : variables to eliminate
     field_size : prime or prime power; inferred from F if None
-    dixon_path : path to the drsolve executable.
+    drsolve_path : path to the drsolve executable.
                  If None (default), uses the global default set by
-                 set_dixon_path() (initially "./drsolve").
+                 set_drsolve_path() (initially "./drsolve").
     finput     : temporary input file; autogenerated when None
     foutput    : output file path; autogenerated when None
     debug      : print wrapper-level diagnostics; does not change drsolve verbosity
@@ -1210,7 +1210,7 @@ def DixonIdeal(
     -------
     str resultant string, or None on failure
     """
-    dixon_path = _resolve_dixon_path(dixon_path)
+    drsolve_path = _resolve_drsolve_path(drsolve_path)
     field_size = _infer_field_size(F, field_size, extra_items=ideal_gens)
     if field_size == 0 or field_size is None:
         raise ValueError("DixonIdeal requires a finite field; drsolve does not support --ideal over Q.")
@@ -1233,7 +1233,7 @@ def DixonIdeal(
         "DixonIdeal",
         lambda path: ToDixonIdeal(F, ideal_gens, elim_vars, field_size, path, debug=debug),
         _parse_resultant_file,
-        dixon_path,
+        drsolve_path,
         cmd_prefix,
         finput,
         foutput,

@@ -9,6 +9,7 @@
 #include <omp.h>
 #endif
 #include "unified_mpoly_interface.h"
+#include "dixon_flint.h"
 
 /* Configuration */
 #define PARALLEL_THRESHOLD 3

@@ -1,6 +1,4 @@
 #include "fq_mvpoly.h"
-#include "fq_mpoly_mat_det.h"
-#include "unified_mpoly_interface.h"
 
 /* ============================================================================
  * Field Equation Reduction Mode

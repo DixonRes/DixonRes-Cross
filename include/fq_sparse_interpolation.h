@@ -6,6 +6,7 @@
 #include <flint/nmod_poly.h>
 #include <flint/nmod_mpoly.h>
 #include <flint/nmod_mat.h>
+#include <flint/nmod_vec.h>
 #include <flint/nmod_poly_factor.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,7 +14,20 @@
 #include <stdio.h>
 #include <time.h>
 #include <gmp.h>
+#include <limits.h>
+#include <stdarg.h>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+#include <nmod_vec_extra.h>
 #include "gf2n_field.h"
+
+#define SPARSE_BASE_RECOVERY_ATTEMPTS 24
+#define SPARSE_DEFAULT_START_BUDGET 32
+#define SPARSE_ESTIMATE_CAP ((slong) (LONG_MAX / 4))
+#define SPARSE_FAST_ROOT_THRESHOLD 64
+#define SPARSE_FAST_ROOT_SPLIT_ATTEMPTS 12
+#define SPARSE_BM_HIST_BINS 11
 
 #define DEBUG 0
 #define TIMING 1

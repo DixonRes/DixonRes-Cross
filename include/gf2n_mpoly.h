@@ -7,10 +7,7 @@
 #include <string.h>
 #include <stdint.h>
 
-/* Optional process-wide override for optimized array multiplication limits.
- * A negative value keeps each field's compiled-in default. */
-extern int gf2n_mpoly_array_limit_k;
-void gf2n_mpoly_set_array_limit_k(int k);
+
 #include <time.h>
 #include <sys/time.h>
 
@@ -22,10 +19,23 @@ void gf2n_mpoly_set_array_limit_k(int k);
 #include <flint/longlong.h>
 #include "gf2n_field.h"
 #include "gf2n_poly.h"
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <time.h>
+#endif
+#if DIXON_X86_SIMD
+#include <emmintrin.h>  /* SSE2 */
+#endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* Optional process-wide override for optimized array multiplication limits.
+ * A negative value keeps each field's compiled-in default. */
+extern int gf2n_mpoly_array_limit_k;
+void gf2n_mpoly_set_array_limit_k(int k);
 
 /* Debug flag */
 #define DEBUG_DIVISION 0

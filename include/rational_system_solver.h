@@ -1,6 +1,11 @@
 #ifndef RATIONAL_SYSTEM_SOLVER_H
 #define RATIONAL_SYSTEM_SOLVER_H
-
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+#include <ctype.h>
+#include <limits.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,6 +17,12 @@
 #include "flint/fmpq.h"
 #include "flint/fmpq_poly.h"
 #include "flint/fmpq_mpoly.h"
+
+#define RATIONAL_REAL_ROOT_PREC 256
+#define RATIONAL_REAL_ROOT_DIGITS 20
+#define RATIONAL_NUMERIC_NEWTON_TOL 1e-10
+#define RATIONAL_NUMERIC_VERIFY_TOL 1e-7
+#define RATIONAL_NUMERIC_NEWTON_MAX_ITER 60
 
 // Forward declarations
 typedef struct rational_solutions rational_solutions_t;

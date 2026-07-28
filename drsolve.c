@@ -5,9 +5,7 @@
 
 #include <flint/flint.h>
 
-#include "dixon_complexity.h"
 #include "drsolve_cli.h"
-#include "fmpq_acb_roots.h"
 
 #define PROGRAM_VERSION "0.4.5"
 #define DEFAULT_OUTPUT_DIR "out"

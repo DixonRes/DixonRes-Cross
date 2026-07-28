@@ -2,12 +2,6 @@
 
 #include "dixon_test.h"
 
-#include "large_prime_system_solver.h"
-
-#include <fcntl.h>
-#include <time.h>
-#include <unistd.h>
-
 // Global threshold variable (extern declaration should be in header)
 extern int g_matrix_transpose_threshold;
 

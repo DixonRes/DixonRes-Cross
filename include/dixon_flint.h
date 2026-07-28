@@ -17,6 +17,9 @@
 #include <gmp.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <stdarg.h>
+#include <limits.h>
+#include <sys/time.h>
 
 #include <flint/flint.h>
 #include <flint/ulong_extras.h>
@@ -29,11 +32,16 @@
 #include <flint/fmpz_mat.h>
 #include <flint/profiler.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "fq_mvpoly.h"
 #include "fq_mpoly_mat_det.h"
 #include "fq_unified_interface.h"
 #include "dixon_interface_flint.h"
 #include "macaulay_flint.h"
+#include "dixon_complexity.h"
 
 // Debug output control - set to 0 to disable all output
 #define DEBUG_OUTPUT_D 0
