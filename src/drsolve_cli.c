@@ -4,6 +4,18 @@
  * Utility helpers
  * ========================================================================= */
 
+static double drsolve_monotonic_time_seconds(void)
+{
+    struct timespec ts;
+
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0) {
+        return (double) ts.tv_sec + (double) ts.tv_nsec / 1000000000.0;
+    }
+
+    /* A fallback is needed only on platforms without a monotonic clock. */
+    return (double) clock() / CLOCKS_PER_SEC;
+}
+
 static int drsolve_default_thread_count(void)
 {
 #ifdef _OPENMP
@@ -2731,10 +2743,7 @@ static int generate_random_poly_strings_rational(
 int drsolve_cli_main(int argc, char *argv[], const char *prog_name)
 {
     clock_t start_time = clock();
-    
-    // Initialize wall clock time at the very beginning
-    struct timeval program_start;
-    gettimeofday(&program_start, NULL);
+    double wall_start_time = drsolve_monotonic_time_seconds();
 
     /* ---- parse flags ---- */
     int    verbose_level = 1;
@@ -4107,11 +4116,10 @@ int drsolve_cli_main(int argc, char *argv[], const char *prog_name)
     clock_t cpu_end_time   = clock();
     double  cpu_time       = (double)(cpu_end_time - start_time) / CLOCKS_PER_SEC;
     
-    // Compute wall time
-    struct timeval program_end;
-    gettimeofday(&program_end, NULL);
-    double wall_time = (program_end.tv_sec - program_start.tv_sec) + 
-                      (program_end.tv_usec - program_start.tv_usec) / 1000000.0;
+    double wall_time = drsolve_monotonic_time_seconds() - wall_start_time;
+    if (wall_time < 0.0) {
+        wall_time = 0.0;
+    }
 
     /* ---- Get actual used threads ---- */
     int total_threads = 1;
