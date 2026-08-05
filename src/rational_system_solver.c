@@ -3918,7 +3918,7 @@ rational_solutions_t* solve_rational_polynomial_system_string(const char *poly_s
     return result;
 }
 
-void test_rational_polynomial_solver(void) {
+static void test_rational_polynomial_solver(void) {
     printf("\n=== Testing Rational Polynomial System Solver ===\n");
     
     char *test1[] = {

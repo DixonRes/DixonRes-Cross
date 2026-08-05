@@ -3286,7 +3286,7 @@ void myrandpoly(nmod_mpoly_t f, slong n, slong T, slong D,
     nmod_mpoly_combine_like_terms(f, mctx);
 }
 
-void test_random_polynomial(void)
+static void test_random_polynomial(void)
 {
     printf("\n========== Testing Sparse.pdf Derivative Interpolation ==========\n");
 
@@ -3344,7 +3344,7 @@ void test_random_polynomial(void)
     free(vars);
 }
 
-int huang_test(void)
+static int huang_test(void)
 {
     printf("Code version: probe-based Sparse.pdf interpolation without old method\n");
     ensure_global_state();

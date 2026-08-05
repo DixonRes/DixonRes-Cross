@@ -37,7 +37,6 @@
 #include "complex_solver.h"
 #include "rational_system_solver.h"
 #include "dixon_test.h"
-#include "dixon_complexity.h"
 #include "fmpq_acb_roots.h"
 
 #ifdef _WIN32

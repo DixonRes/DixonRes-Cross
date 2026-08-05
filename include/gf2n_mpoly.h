@@ -7,8 +7,6 @@
 #include <string.h>
 #include <stdint.h>
 
-
-#include <time.h>
 #include <sys/time.h>
 
 #include <flint/flint.h>
@@ -472,12 +470,7 @@ void gf2128_mpoly_to_fq_nmod_mpoly(fq_nmod_mpoly_t res, const gf2128_mpoly_t pol
    ============================================================================ */
 
 double get_wall_time(void);
-int gf28_mpoly_test_mul_array(
-    const slong *nvars_list, slong nvars_count,
-    slong exp_bound, slong nterms, slong ntrials, int verbose);
-int gf28_mpoly_test_mul_vs_flint(
-    const slong *nvars_list, slong nvars_count,
-    slong exp_bound, slong nterms, slong ntrials, int verbose);
+
 #ifdef __cplusplus
 }
 #endif

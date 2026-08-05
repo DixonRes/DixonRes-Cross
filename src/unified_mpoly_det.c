@@ -1553,7 +1553,7 @@ void unified_mpoly_mat_print_pretty(unified_mpoly_t **mat, slong rows, slong col
    ============================================================================ */
 
 /* Test the determinant computation */
-void test_unified_mpoly_det(void) {
+static void test_unified_mpoly_det(void) {
     printf("\n=== Testing Unified Polynomial Matrix Determinant ===\n");
     
     /* Initialize field context for GF(2^8) */

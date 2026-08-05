@@ -1,5 +1,6 @@
 // Complete fixed Dixon resultant string interface implementation
 #include "dixon_interface_flint.h"
+#include <stdint.h>
 
 // Fixed string parser implementation
 
@@ -1411,7 +1412,8 @@ char* compute_dixon_internal_with_file(const char **poly_strings, slong npoly_st
                                        const char **var_names, slong nvars,
                                        const fq_nmod_ctx_t ctx,
                                        char ***remaining_vars, slong *num_remaining,
-                                       FILE *fp_file, int print_to_stdout) {
+                                       FILE *fp_file, int print_to_stdout,
+                                       fq_mvpoly_t *result_poly_out) {
     
     if (npoly_strings != nvars + 1) {
         fprintf(stderr, "Error: Need exactly %ld polynomials for %ld variables\n",
@@ -1485,19 +1487,25 @@ char* compute_dixon_internal_with_file(const char **poly_strings, slong npoly_st
                                       state.var_names, state.par_names, gen_name);
     }
 
-    // Find roots with proper parameter names
-    find_and_print_roots_of_univariate_resultant_with_file(&dixon_result_poly, &state, fp_file, print_to_stdout);
-    
-    // Convert result to string with original parameter names
+    if (result_poly_out) {
+        *result_poly_out = dixon_result_poly;
+    }
+
+    // Find roots with proper parameter names and convert to string for the CLI path.
     char *result_string;
-    if (dixon_result_poly.nterms == 0) {
+    if (result_poly_out) {
+        result_string = NULL;
+    } else if (dixon_result_poly.nterms == 0) {
         result_string = strdup("0");
     } else {
+        find_and_print_roots_of_univariate_resultant_with_file(&dixon_result_poly, &state, fp_file, print_to_stdout);
         result_string = fq_mvpoly_to_string(&dixon_result_poly, state.par_names, gen_name);
     }
-    
+
     // Cleanup
-    fq_mvpoly_clear(&dixon_result_poly);
+    if (!result_poly_out) {
+        fq_mvpoly_clear(&dixon_result_poly);
+    }
     for (slong i = 0; i < npoly_strings; i++) {
         fq_mvpoly_clear(&polys[i]);
     }
@@ -1532,7 +1540,8 @@ char* compute_dixon_internal(const char **poly_strings, slong npoly_strings,
                            const char **var_names, slong nvars,
                            const fq_nmod_ctx_t ctx,
                            char ***remaining_vars, slong *num_remaining) {
-    return compute_dixon_internal_with_file(poly_strings, npoly_strings, var_names, nvars, ctx, remaining_vars, num_remaining, NULL, 1);
+    return compute_dixon_internal_with_file(poly_strings, npoly_strings, var_names, nvars, ctx,
+                                            remaining_vars, num_remaining, NULL, 1, NULL);
 }
 
 // Helper function: remove whitespace from both ends of string
@@ -1636,6 +1645,8 @@ typedef struct {
     slong alloc;
     slong npars;
     char **par_names;
+    slong *term_map;
+    size_t term_map_cap;
     fmpz_t modulus;
 } qq_poly_recon_t;
 
@@ -1644,6 +1655,54 @@ static int qq_same_monomial(const slong *a, const slong *b, slong npars) {
         if (a[i] != b[i]) return 0;
     }
     return 1;
+}
+
+static uint64_t qq_monomial_hash(const slong *par_exp, slong npars) {
+    uint64_t hash = UINT64_C(1469598103934665603);
+
+    for (slong i = 0; i < npars; i++) {
+        hash ^= (uint64_t) par_exp[i] + UINT64_C(0x9e3779b97f4a7c15);
+        hash *= UINT64_C(1099511628211);
+    }
+    return hash;
+}
+
+static int qq_poly_recon_rebuild_map(qq_poly_recon_t *poly, size_t min_capacity) {
+    size_t capacity = 16;
+
+    while (capacity < min_capacity) {
+        if (capacity > SIZE_MAX / 2) return 0;
+        capacity *= 2;
+    }
+
+    slong *map = (slong *) malloc(capacity * sizeof(slong));
+    if (!map) return 0;
+    for (size_t i = 0; i < capacity; i++) map[i] = -1;
+
+    for (slong i = 0; i < poly->nterms; i++) {
+        size_t slot = (size_t) qq_monomial_hash(poly->terms[i].par_exp, poly->npars)
+                    & (capacity - 1);
+        while (map[slot] >= 0) {
+            slot = (slot + 1) & (capacity - 1);
+        }
+        map[slot] = i;
+    }
+
+    free(poly->term_map);
+    poly->term_map = map;
+    poly->term_map_cap = capacity;
+    return 1;
+}
+
+static void qq_poly_recon_map_insert(qq_poly_recon_t *poly, slong term_idx) {
+    if (!poly->term_map || poly->term_map_cap == 0) return;
+
+    size_t slot = (size_t) qq_monomial_hash(poly->terms[term_idx].par_exp, poly->npars)
+                & (poly->term_map_cap - 1);
+    while (poly->term_map[slot] >= 0) {
+        slot = (slot + 1) & (poly->term_map_cap - 1);
+    }
+    poly->term_map[slot] = term_idx;
 }
 
 static void qq_poly_recon_init(qq_poly_recon_t *poly, char **par_names, slong npars) {
@@ -1655,6 +1714,8 @@ static void qq_poly_recon_init(qq_poly_recon_t *poly, char **par_names, slong np
     for (slong i = 0; i < npars; i++) {
         poly->par_names[i] = strdup(par_names[i]);
     }
+    poly->term_map = NULL;
+    poly->term_map_cap = 0;
     fmpz_init(poly->modulus);
     fmpz_one(poly->modulus);
 }
@@ -1665,6 +1726,9 @@ static void qq_poly_recon_clear_terms(qq_poly_recon_t *poly) {
             poly->terms = NULL;
             poly->nterms = 0;
             poly->alloc = 0;
+            free(poly->term_map);
+            poly->term_map = NULL;
+            poly->term_map_cap = 0;
         }
         return;
     }
@@ -1677,6 +1741,9 @@ static void qq_poly_recon_clear_terms(qq_poly_recon_t *poly) {
     poly->terms = NULL;
     poly->nterms = 0;
     poly->alloc = 0;
+    free(poly->term_map);
+    poly->term_map = NULL;
+    poly->term_map_cap = 0;
 }
 
 static void qq_poly_recon_clear(qq_poly_recon_t *poly) {
@@ -1713,9 +1780,23 @@ static void qq_poly_recon_copy(qq_poly_recon_t *dst, const qq_poly_recon_t *src)
         fmpz_init(dst->terms[i].residue);
         fmpz_set(dst->terms[i].residue, src->terms[i].residue);
     }
+    (void) qq_poly_recon_rebuild_map(dst, (size_t) src->nterms * 2);
 }
 
 static slong qq_poly_recon_find_term(const qq_poly_recon_t *poly, const slong *par_exp) {
+    if (poly->term_map && poly->term_map_cap > 0) {
+        size_t slot = (size_t) qq_monomial_hash(par_exp, poly->npars)
+                    & (poly->term_map_cap - 1);
+        while (poly->term_map[slot] >= 0) {
+            slong idx = poly->term_map[slot];
+            if (qq_same_monomial(poly->terms[idx].par_exp, par_exp, poly->npars)) {
+                return idx;
+            }
+            slot = (slot + 1) & (poly->term_map_cap - 1);
+        }
+        return -1;
+    }
+
     for (slong i = 0; i < poly->nterms; i++) {
         if (qq_same_monomial(poly->terms[i].par_exp, par_exp, poly->npars)) {
             return i;
@@ -1725,6 +1806,11 @@ static slong qq_poly_recon_find_term(const qq_poly_recon_t *poly, const slong *p
 }
 
 static slong qq_poly_recon_add_term(qq_poly_recon_t *poly, const slong *par_exp) {
+    if (!poly->term_map ||
+        ((size_t) (poly->nterms + 1) * 10 >= poly->term_map_cap * 7)) {
+        (void) qq_poly_recon_rebuild_map(poly, (size_t) (poly->nterms + 1) * 2);
+    }
+
     if (poly->nterms >= poly->alloc) {
         poly->alloc = poly->alloc ? 2 * poly->alloc : 16;
         poly->terms = (qq_term_t*) realloc(poly->terms, (size_t) poly->alloc * sizeof(qq_term_t));
@@ -1737,6 +1823,7 @@ static slong qq_poly_recon_add_term(qq_poly_recon_t *poly, const slong *par_exp)
     }
     fmpz_init(poly->terms[idx].residue);
     fmpz_zero(poly->terms[idx].residue);
+    qq_poly_recon_map_insert(poly, idx);
     return idx;
 }
 
@@ -2133,6 +2220,31 @@ static char *qq_compute_modular_resultant_for_reconstruction(const char *poly_st
     return result;
 }
 
+static char *qq_compute_modular_resultant_for_prime(const char *poly_string,
+                                                    const char *vars_string,
+                                                    ulong prime) {
+    char *result;
+    fmpz_t task_p;
+    fq_nmod_ctx_t task_ctx;
+
+    fmpz_init(task_p);
+    fmpz_set_ui(task_p, prime);
+    fq_nmod_ctx_init(task_ctx, task_p, 1, "t");
+    result = qq_compute_modular_resultant_for_reconstruction(poly_string,
+                                                              vars_string,
+                                                              task_ctx);
+    fq_nmod_ctx_clear(task_ctx);
+    fmpz_clear(task_p);
+    return result;
+}
+
+static int qq_compute_modular_resultant_poly_for_prime(const char *poly_string,
+                                                       const char *vars_string,
+                                                       const fq_nmod_ctx_t ctx,
+                                                       fq_mvpoly_t *result_poly) {
+    return dixon_compute_result_poly(poly_string, vars_string, ctx, result_poly);
+}
+
 static void qq_select_reconstruction_primes(ulong *primes, slong *num_primes_out, slong max_primes) {
     ulong candidate;
     slong num_primes = 0;
@@ -2260,7 +2372,8 @@ static char *qq_reconstruct_from_modular_dixon_with_file(const char *poly_string
             int outer_threads;
             int inner_threads;
             slong batch_count;
-            char **mod_results;
+            fq_mvpoly_t **mod_results;
+            fq_nmod_ctx_t *task_contexts;
             int saved_verbose = g_dixon_verbose_level;
 
             if (total_threads < 1) total_threads = 1;
@@ -2268,9 +2381,12 @@ static char *qq_reconstruct_from_modular_dixon_with_file(const char *poly_string
             if (outer_threads < 1) outer_threads = 1;
             batch_count = FLINT_MIN(remaining, (slong) outer_threads);
             inner_threads = FLINT_MAX(1, total_threads / outer_threads);
-            mod_results = (char **) calloc((size_t) batch_count, sizeof(char *));
-            if (!mod_results) {
+            mod_results = (fq_mvpoly_t **) calloc((size_t) batch_count, sizeof(fq_mvpoly_t *));
+            task_contexts = (fq_nmod_ctx_t *) calloc((size_t) batch_count, sizeof(fq_nmod_ctx_t));
+            if (!mod_results || !task_contexts) {
                 fprintf(stderr, "Failed to allocate modular-result batch.\n");
+                free(mod_results);
+                free(task_contexts);
                 break;
             }
 
@@ -2287,32 +2403,51 @@ static char *qq_reconstruct_from_modular_dixon_with_file(const char *poly_string
                 int saved_levels = omp_get_max_active_levels();
                 omp_set_dynamic(0);
                 omp_set_max_active_levels(2);
-                #pragma omp parallel for schedule(dynamic) num_threads(outer_threads)
-                for (slong j = 0; j < batch_count; j++) {
-                    fq_nmod_ctx_t task_ctx;
+                if (batch_count == 1) {
                     fmpz_t task_p;
                     omp_set_num_threads(inner_threads);
                     fmpz_init(task_p);
-                    fmpz_set_ui(task_p, primes[processed_primes + j]);
-                    fq_nmod_ctx_init(task_ctx, task_p, 1, "t");
-                    mod_results[j] = qq_compute_modular_resultant_for_reconstruction(
-                        poly_string, vars_string, task_ctx);
-                    fq_nmod_ctx_clear(task_ctx);
+                    fmpz_set_ui(task_p, primes[processed_primes]);
+                    fq_nmod_ctx_init(task_contexts[0], task_p, 1, "t");
+                    mod_results[0] = (fq_mvpoly_t *) malloc(sizeof(fq_mvpoly_t));
+                    if (!mod_results[0] || !qq_compute_modular_resultant_poly_for_prime(
+                            poly_string, vars_string, task_contexts[0], mod_results[0])) {
+                        free(mod_results[0]);
+                        mod_results[0] = NULL;
+                    }
                     fmpz_clear(task_p);
+                } else {
+                    #pragma omp parallel for schedule(dynamic) num_threads(outer_threads)
+                    for (slong j = 0; j < batch_count; j++) {
+                        fmpz_t task_p;
+                        omp_set_num_threads(inner_threads);
+                        fmpz_init(task_p);
+                        fmpz_set_ui(task_p, primes[processed_primes + j]);
+                        fq_nmod_ctx_init(task_contexts[j], task_p, 1, "t");
+                        mod_results[j] = (fq_mvpoly_t *) malloc(sizeof(fq_mvpoly_t));
+                        if (!mod_results[j] || !qq_compute_modular_resultant_poly_for_prime(
+                                poly_string, vars_string, task_contexts[j], mod_results[j])) {
+                            free(mod_results[j]);
+                            mod_results[j] = NULL;
+                        }
+                        fmpz_clear(task_p);
+                    }
                 }
                 omp_set_max_active_levels(saved_levels);
                 omp_set_dynamic(saved_dynamic);
             }
 #else
             for (slong j = 0; j < batch_count; j++) {
-                fq_nmod_ctx_t task_ctx;
                 fmpz_t task_p;
                 fmpz_init(task_p);
                 fmpz_set_ui(task_p, primes[processed_primes + j]);
-                fq_nmod_ctx_init(task_ctx, task_p, 1, "t");
-                mod_results[j] = qq_compute_modular_resultant_for_reconstruction(
-                    poly_string, vars_string, task_ctx);
-                fq_nmod_ctx_clear(task_ctx);
+                fq_nmod_ctx_init(task_contexts[j], task_p, 1, "t");
+                mod_results[j] = (fq_mvpoly_t *) malloc(sizeof(fq_mvpoly_t));
+                if (!mod_results[j] || !qq_compute_modular_resultant_poly_for_prime(
+                        poly_string, vars_string, task_contexts[j], mod_results[j])) {
+                    free(mod_results[j]);
+                    mod_results[j] = NULL;
+                }
                 fmpz_clear(task_p);
             }
 #endif
@@ -2324,7 +2459,6 @@ static char *qq_reconstruct_from_modular_dixon_with_file(const char *poly_string
                 slong i = processed_primes + j;
                 fq_nmod_ctx_t ctx;
                 fmpz_t p;
-                fq_mvpoly_t mod_poly;
                 char *candidate_result = NULL;
 
                 printf("Prime %ld/%ld completed modulo %lu.\n", i + 1, num_primes, primes[i]);
@@ -2336,22 +2470,18 @@ static char *qq_reconstruct_from_modular_dixon_with_file(const char *poly_string
                 fmpz_init(p);
                 fmpz_set_ui(p, primes[i]);
                 fq_nmod_ctx_init(ctx, p, 1, "t");
-                if (!parse_result_string_fixed_params(mod_results[j], recon.par_names,
-                                                      recon.npars, ctx, &mod_poly)) {
-                    printf("Skipping p = %lu: failed to parse modular resultant.\n", primes[i]);
-                    fq_nmod_ctx_clear(ctx);
-                    fmpz_clear(p);
-                    continue;
-                }
 
-                qq_poly_recon_absorb_modular_result(&recon, &mod_poly, ctx);
+                clock_t reconstruct_start = clock();
+                qq_poly_recon_absorb_modular_result(&recon, mod_results[j], ctx);
+                double absorb_time = (double) (clock() - reconstruct_start) / CLOCKS_PER_SEC;
+                clock_t format_start = clock();
                 if (qq_poly_recon_to_string(&candidate_result, &recon)) {
-                    qq_poly_recon_copy(&best_recon, &recon);
                     have_best_recon = 1;
                     if (best_result && strcmp(best_result, candidate_result) == 0) {
                         stable_count++;
                     } else {
                         stable_count = 0;
+                        qq_poly_recon_copy(&best_recon, &recon);
                         free(best_result);
                         best_result = strdup(candidate_result);
                         printf("Reconstruction updated after p = %lu.\n", primes[i]);
@@ -2363,15 +2493,26 @@ static char *qq_reconstruct_from_modular_dixon_with_file(const char *poly_string
                         stop_reconstruction = 1;
                     }
                 }
+                if (g_dixon_verbose_level >= 3) {
+                    double format_time = (double) (clock() - format_start) / CLOCKS_PER_SEC;
+                    printf("  Rational reconstruction: CRT/matching %.3f s | coefficient reconstruction/string %.3f s\n",
+                           absorb_time, format_time);
+                }
 
-                fq_mvpoly_clear(&mod_poly);
                 fq_nmod_ctx_clear(ctx);
                 fmpz_clear(p);
                 if (stop_reconstruction) break;
             }
 
-            for (slong j = 0; j < batch_count; j++) free(mod_results[j]);
+            for (slong j = 0; j < batch_count; j++) {
+                if (mod_results[j]) {
+                    fq_mvpoly_clear(mod_results[j]);
+                    free(mod_results[j]);
+                }
+                fq_nmod_ctx_clear(task_contexts[j]);
+            }
             free(mod_results);
+            free(task_contexts);
             processed_primes += batch_count;
         }
 
@@ -2772,10 +2913,10 @@ char* dixon_with_file(const char **poly_strings, slong num_polys,
     char **remaining_vars = NULL;
     slong num_remaining = 0;
     
-    char *result = compute_dixon_internal_with_file(poly_strings, num_polys, 
+    char *result = compute_dixon_internal_with_file(poly_strings, num_polys,
                                                     elim_vars, num_elim_vars, ctx,
                                                     &remaining_vars, &num_remaining,
-                                                    fp_file, print_to_stdout);
+                                                    fp_file, print_to_stdout, NULL);
     
     // Cleanup remaining vars
     if (remaining_vars) {
@@ -3282,6 +3423,44 @@ char* dixon_str(const char *poly_string,
                 const char *vars_string,
                 const fq_nmod_ctx_t ctx) {
     return dixon_str_with_file(poly_string, vars_string, ctx, NULL, 1);
+}
+
+int dixon_compute_result_poly(const char *poly_string,
+                              const char *vars_string,
+                              const fq_nmod_ctx_t ctx,
+                              fq_mvpoly_t *result_poly) {
+    char **poly_array = NULL;
+    char **vars_array = NULL;
+    char **remaining_vars = NULL;
+    slong num_polys = 0;
+    slong num_vars = 0;
+    slong num_remaining = 0;
+    char *unused_result;
+
+    if (!poly_string || !vars_string || !result_poly) return 0;
+
+    poly_array = split_string(poly_string, &num_polys);
+    vars_array = split_string(vars_string, &num_vars);
+    if (!poly_array || !vars_array) goto fail;
+
+    unused_result = compute_dixon_internal_with_file(
+        (const char **) poly_array, num_polys,
+        (const char **) vars_array, num_vars, ctx,
+        &remaining_vars, &num_remaining, NULL, 0, result_poly);
+    free(unused_result);
+
+    if (remaining_vars) {
+        for (slong i = 0; i < num_remaining; i++) free(remaining_vars[i]);
+        free(remaining_vars);
+    }
+    free_split_strings(poly_array, num_polys);
+    free_split_strings(vars_array, num_vars);
+    return 1;
+
+fail:
+    if (poly_array) free_split_strings(poly_array, num_polys);
+    if (vars_array) free_split_strings(vars_array, num_vars);
+    return 0;
 }
 
 void append_roots_to_file_from_result(const char *result_str,

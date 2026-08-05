@@ -48,7 +48,4 @@ char* elimination_with_ideal_reduction(const char **poly_strings, slong num_poly
                                       const fq_nmod_ctx_t ctx,
                                       unified_triangular_ideal_t *ideal);
 
-// Test function for iterative elimination
-void test_iterative_elimination_str2(void);
-
 #endif

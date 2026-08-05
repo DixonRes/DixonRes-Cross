@@ -7,6 +7,30 @@
 
 #include "dixon_flint.h"
 
+/* Internal row-basis state used only by the Dixon implementation. */
+typedef struct {
+    field_elem_u *reduced_rows;
+    slong *pivot_cols;
+    slong *selected_indices;
+    slong current_rank;
+    slong max_size;
+    slong ncols;
+    field_ctx_t *ctx;
+    int initialized;
+    field_elem_u *work_row;
+    field_elem_u *temp_vars;
+    int workspace_initialized;
+} unified_row_basis_tracker_t;
+
+static void find_pivot_rows_nmod_fixed(slong **selected_rows_out,
+                                       slong *num_selected,
+                                       const nmod_mat_t mat);
+static void find_pivot_rows_simple(slong **selected_rows_out,
+                                   slong *num_selected,
+                                   const field_elem_u *unified_mat,
+                                   slong nrows, slong ncols,
+                                   field_ctx_t *ctx);
+
 // Global method selection variable definitions
 det_method_t dixon_global_method_step1 = -1;
 det_method_t dixon_global_method_step4 = -1;
@@ -2230,8 +2254,8 @@ static int select_ksy_columns_from_transposed_nmod(slong **selected_cols_out,
 }
 // Find pivot rows for maximal rank submatrix - ensure linear independence
 // More efficient version: using incremental rank checking
-void find_pivot_rows_nmod_fixed(slong **selected_rows_out, slong *num_selected,
-                                const nmod_mat_t mat) {
+static void find_pivot_rows_nmod_fixed(slong **selected_rows_out, slong *num_selected,
+                                       const nmod_mat_t mat) {
     
     slong nrows = nmod_mat_nrows(mat);
     slong ncols = nmod_mat_ncols(mat);
@@ -2349,10 +2373,10 @@ void find_pivot_rows_nmod_fixed(slong **selected_rows_out, slong *num_selected,
 // ============================================================================
 // Optimized find_pivot_rows_simple - directly calls nmod version
 // ============================================================================
-void find_pivot_rows_simple(slong **selected_rows_out, slong *num_selected,
-                                        const field_elem_u *unified_mat, 
-                                        slong nrows, slong ncols,
-                                        field_ctx_t *ctx) {
+static void find_pivot_rows_simple(slong **selected_rows_out, slong *num_selected,
+                                   const field_elem_u *unified_mat,
+                                   slong nrows, slong ncols,
+                                   field_ctx_t *ctx) {
     
     // ============================================================================
     // Prime field fast path: directly use nmod_fixed implementation (optimal performance)
@@ -3575,7 +3599,7 @@ void find_fq_optimal_maximal_rank_submatrix(fq_mvpoly_t ***full_matrix,
 }
 
 // Optimized monomial collection function - replaces the original O(n²) loop
-void collect_unique_monomials(
+static void collect_unique_monomials(
     monom_t **x_monoms_out, slong *nx_monoms_out,
     monom_t **dual_monoms_out, slong *ndual_monoms_out,
     const fq_mvpoly_t *dixon_poly, 
@@ -3750,7 +3774,7 @@ fq_mvpoly_t* get_matrix_entry_lazy(fq_mvpoly_t ***matrix, slong i, slong j,
     }
     return matrix[i][j];
 }
-void fill_coefficient_matrix_optimized(fq_mvpoly_t ***full_matrix,
+static void fill_coefficient_matrix_optimized(fq_mvpoly_t ***full_matrix,
                                       monom_t *x_monoms, slong nx_monoms,
                                       monom_t *dual_monoms, slong ndual_monoms,
                                       const fq_mvpoly_t *dixon_poly,
@@ -4847,9 +4871,12 @@ void fq_dixon_resultant_with_names(fq_mvpoly_t *result, fq_mvpoly_t *polys,
         #ifdef _OPENMP
         if (npars > 1) {
             coeff_method = DET_METHOD_INTERPOLATION;
+            if (matrix_size < 10) {
+                coeff_method = DET_METHOD_RECURSIVE;
+            }
         } else 
         #endif
-        if (matrix_size < 9) {
+        if (matrix_size < 10) {
             coeff_method = DET_METHOD_RECURSIVE;
         } else {
             coeff_method = DET_METHOD_KRONECKER;

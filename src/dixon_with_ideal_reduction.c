@@ -2828,7 +2828,7 @@ char* dixon_with_ideal_reduction_str(const char *poly_string,
     return result;
 }
 
-void test_iterative_elimination(void) {
+static void test_iterative_elimination(void) {
     printf("\n================================================\n");
     printf("Test: Simplified Iterative Elimination\n");
     printf("================================================\n");
@@ -2890,7 +2890,7 @@ void test_iterative_elimination(void) {
     fq_nmod_ctx_clear(ctx);
 }
 
-void test_iterative_elimination_str(void) {
+static void test_iterative_elimination_str(void) {
     printf("\n================================================\n");
     printf("Test: Simplified Iterative Elimination\n");
     printf("================================================\n");

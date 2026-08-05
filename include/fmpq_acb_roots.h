@@ -10,7 +10,6 @@
 #include <flint/fmpz_poly.h>
 #include <flint/fmpz_poly_factor.h>
 #include <flint/acb.h>
-#include <flint/acb_poly.h>
 #include <flint/arith.h>
 #include <flint/acb_poly.h>
 #include <flint/arb.h>

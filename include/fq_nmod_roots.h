@@ -71,13 +71,4 @@ slong our_fq_nmod_poly_roots(fq_nmod_roots_t roots, const fq_nmod_poly_t poly, i
 void generate_nmod_poly(nmod_poly_t poly, flint_rand_t state, slong degree, mp_limb_t p);
 void generate_fq_nmod_poly(fq_nmod_poly_t poly, flint_rand_t state, slong degree, const fq_nmod_ctx_t ctx);
 
-// Benchmark functions
-double benchmark_nmod_roots(slong degree, int num_tests);
-double benchmark_fq_nmod_roots(slong degree, slong extension, int num_tests);
-double benchmark_flint_fq_nmod_factor(slong degree, slong extension, int num_tests);
-
-// Test and verification functions
-void test_fq_nmod_correctness(void);
-void run_unified_comparison(void);
-
 #endif // FQ_NMOD_ROOTS_H

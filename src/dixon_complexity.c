@@ -3786,7 +3786,7 @@ double extract_max_complexity_str(const char *poly_string) {
     return complexity;
 }
 
-int test_dixon_complexity() {
+static int test_dixon_complexity() {
     // Test data
     long a1[] = {1000, 1000, 1000, 1001, 1002, 1003};
     int len = sizeof(a1) / sizeof(a1[0]);

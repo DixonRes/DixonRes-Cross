@@ -126,6 +126,4 @@ rational_solutions_t* solve_rational_polynomial_system_array_with_vars(char **po
 rational_solutions_t* solve_rational_polynomial_system_array(char **poly_strings, slong num_polys);
 rational_solutions_t* solve_rational_polynomial_system_string(const char *poly_string);
 
-void test_rational_polynomial_solver(void);
-
 #endif

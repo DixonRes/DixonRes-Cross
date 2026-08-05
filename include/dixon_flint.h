@@ -119,32 +119,6 @@ void compute_fq_coefficient_matrix_det(fq_mvpoly_t *result, fq_mvpoly_t **coeff_
                                       slong size, slong npars, const fq_nmod_ctx_t ctx,
                                       det_method_t method, slong res_deg_bound);
 
-// Row basis tracker structure for linear independence checking
-typedef struct {
-    field_elem_u *reduced_rows;    // Reduced row vectors
-    slong *pivot_cols;             // Pivot column positions for each row
-    slong *selected_indices;       // Selected original row indices
-    slong current_rank;            // Current rank
-    slong max_size;
-    slong ncols;
-    field_ctx_t *ctx;              // Unified field context
-    int initialized;               // Initialization flag
-    
-    // Pre-allocated workspace to avoid repeated allocation
-    field_elem_u *work_row;        // Working row
-    field_elem_u *temp_vars;       // Temporary variable pool: [factor, temp, pivot_val, neg_temp]
-    int workspace_initialized;     // Workspace initialization flag
-} unified_row_basis_tracker_t;
-
-// Pivot row finding functions
-void find_pivot_rows_nmod_fixed(slong **selected_rows_out, slong *num_selected,
-                               const nmod_mat_t mat);
-
-void find_pivot_rows_simple(slong **selected_rows_out, slong *num_selected,
-                           const field_elem_u *unified_mat, 
-                           slong nrows, slong ncols,
-                           field_ctx_t *ctx);
-
 // Maximal rank submatrix finding
 void find_fq_optimal_maximal_rank_submatrix(fq_mvpoly_t ***full_matrix, 
                                            slong nrows, slong ncols,
@@ -167,25 +141,9 @@ typedef struct hash_entry {
 } hash_entry_t;
 
 // Optimized monomial collection with hash table
-void collect_unique_monomials(
-    monom_t **x_monoms_out, slong *nx_monoms_out,
-    monom_t **dual_monoms_out, slong *ndual_monoms_out,
-    const fq_mvpoly_t *dixon_poly, 
-    const slong *d0, const slong *d1, slong nvars);
-
 // Lazy matrix entry allocation
 fq_mvpoly_t* get_matrix_entry_lazy(fq_mvpoly_t ***matrix, slong i, slong j,
                                   slong npars, const fq_nmod_ctx_t ctx);
-
-// Optimized coefficient matrix filling
-void fill_coefficient_matrix_optimized(fq_mvpoly_t ***full_matrix,
-                                      monom_t *x_monoms, slong nx_monoms,
-                                      monom_t *dual_monoms, slong ndual_monoms,
-                                      const fq_mvpoly_t *dixon_poly,
-                                      const slong *d0, const slong *d1, 
-                                      slong nvars, slong npars,
-                                      hash_entry_t **x_index, slong x_hash_size,
-                                      hash_entry_t **dual_index, slong dual_hash_size);
 
 // Extract coefficient matrix from Dixon polynomial
 void extract_fq_coefficient_matrix_from_dixon(fq_mvpoly_t ***coeff_matrix,

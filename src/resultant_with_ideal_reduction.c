@@ -988,7 +988,7 @@ char* elimination_with_ideal_reduction(const char **poly_strings, slong num_poly
     return result;
 }
 
-void test_iterative_elimination_str2(void) {
+static void test_iterative_elimination_str2(void) {
     printf("\n================================================\n");
     printf("Test: Simplified Iterative Elimination\n");
     printf("================================================\n");

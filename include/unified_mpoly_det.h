@@ -59,7 +59,4 @@ void unified_mpoly_mat_clear(unified_mpoly_t **mat, slong rows, slong cols);
 void unified_mpoly_mat_print_pretty(unified_mpoly_t **mat, slong rows, slong cols,
                                    const char **vars);
 
-/* Test function */
-void test_unified_mpoly_det(void);
-
 #endif /* UNIFIED_MPOLY_DET_H */

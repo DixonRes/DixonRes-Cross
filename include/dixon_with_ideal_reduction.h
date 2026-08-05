@@ -159,9 +159,4 @@ char** extract_all_variables_from_ideal_gens(const char **ideal_gens_strs,
                                             const fq_nmod_ctx_t ctx,
                                             slong *total_vars);
 
-/* Test functions */
-void test_iterative_elimination(void);
-
-void test_iterative_elimination_str(void);
-
 #endif /* DIXON_WITH_IDEAL_REDUCTION_H */

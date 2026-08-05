@@ -200,6 +200,4 @@ double extract_max_complexity(const char **poly_strings, slong num_polys);
 double extract_max_complexity_str(const char *poly_string);
 
 // Test function
-int test_dixon_complexity(void);
-
 #endif // DIXON_COMPLEXITY_H

@@ -2367,19 +2367,19 @@ static void print_polynomial_solutions_brief(const polynomial_solutions_t *sols)
     }
 }
 
-static void save_result_to_file(const char *filename,
-                                const char *polys_str,
-                                const char *vars_str,
-                                const char *ideal_str,
-                                const char *allvars_str,
-                                const fmpz_t prime, ulong power,
-                                const char *result,
-                                double cpu_time, double wall_time, int threads_num)
+static FILE *save_result_to_file(const char *filename,
+                                 const char *polys_str,
+                                 const char *vars_str,
+                                 const char *ideal_str,
+                                 const char *allvars_str,
+                                 const fmpz_t prime, ulong power,
+                                 const char *result,
+                                 double cpu_time, double wall_time, int threads_num)
 {
     FILE *out_fp = fopen(filename, "w");
     if (!out_fp) {
         fprintf(stderr, "Warning: Could not create output file '%s'\n", filename);
-        return;
+        return NULL;
     }
 
     fprintf(out_fp, "%s\n", resultant_method_heading(g_resultant_method));
@@ -2405,7 +2405,7 @@ static void save_result_to_file(const char *filename,
     (void) threads_num;
     fprintf(out_fp, "Time: %.3f seconds\n", wall_time);
     fprintf(out_fp, "\nResultant:\n%s\n", result);
-    fclose(out_fp);
+    return out_fp;
 }
 
 static int count_comma_separated_items(const char *str)
@@ -4224,29 +4224,30 @@ int drsolve_cli_main(int argc, char *argv[], const char *prog_name)
                 printf("Final Resultant over target field = %s\n", result);
             }
             if (output_filename && !rational_mode) {
-                save_result_to_file(output_filename, polys_str, vars_str,
-                                    ideal_str, allvars_str, p_fmpz, power,
-                                    result, cpu_time, wall_time, total_threads);
-                if (!silent_mode)
-                    printf("\nResult saved to: %s\n", output_filename);
-                
-                FILE *fp_append = resultant_only_mode ? NULL : fopen(output_filename, "a");
+                double save_start_time = drsolve_monotonic_time_seconds();
+                FILE *fp_append = save_result_to_file(output_filename, polys_str, vars_str,
+                                                      ideal_str, allvars_str, p_fmpz, power,
+                                                      result, cpu_time, wall_time, total_threads);
                 if (fp_append) {
-                    if (large_prime_mode) {
+                    if (!resultant_only_mode && large_prime_mode) {
                         large_prime_print_roots_from_resultant_string(result, polys_str, vars_str,
                                                                       p_fmpz, fp_append, !silent_mode);
-                    } else {
+                    } else if (!resultant_only_mode) {
                         const char *cached_root_report = dixon_get_last_root_report();
                         if (cached_root_report && cached_root_report[0] != '\0') {
                             fputs(cached_root_report, fp_append);
-                        } else {
-                            append_roots_to_file_from_result(result, polys_str, vars_str, ctx, fp_append);
                         }
                     }
                     fclose(fp_append);
+                    if (!silent_mode)
+                        printf("\nResult saved to: %s\n", output_filename);
                 } else if (!resultant_only_mode && large_prime_mode && !silent_mode) {
                     large_prime_print_roots_from_resultant_string(result, polys_str, vars_str,
                                                                   p_fmpz, NULL, 1);
+                }
+                if (!silent_mode && verbose_level >= 3) {
+                    printf("Save time: %.3f seconds\n",
+                           drsolve_monotonic_time_seconds() - save_start_time);
                 }
             } else if (large_prime_mode && !resultant_only_mode) {
                 large_prime_print_roots_from_resultant_string(result, polys_str, vars_str,

@@ -589,7 +589,7 @@ void generate_fq_nmod_poly(fq_nmod_poly_t poly, flint_rand_t state, slong degree
 
 // Benchmark functions
 
-double benchmark_nmod_roots(slong degree, int num_tests) {
+static double benchmark_nmod_roots(slong degree, int num_tests) {
     printf("\n=== nmod_poly CZ Root Finding Test ===\n");
     
     nmod_poly_t poly;
@@ -626,7 +626,7 @@ double benchmark_nmod_roots(slong degree, int num_tests) {
     return avg;
 }
 
-double benchmark_fq_nmod_roots(slong degree, slong extension, int num_tests) {
+static double benchmark_fq_nmod_roots(slong degree, slong extension, int num_tests) {
     printf("\n=== fq_nmod_poly CZ Root Finding Test (F_{%d^%ld}) ===\n", 2, extension);
     
     fq_nmod_ctx_t ctx;
@@ -667,7 +667,7 @@ double benchmark_fq_nmod_roots(slong degree, slong extension, int num_tests) {
     return avg;
 }
 
-double benchmark_flint_fq_nmod_factor(slong degree, slong extension, int num_tests) {
+static double benchmark_flint_fq_nmod_factor(slong degree, slong extension, int num_tests) {
     printf("\n=== FLINT fq_nmod_poly Factorization Test (F_{%d^%ld}) ===\n", 2, extension);
     
     fq_nmod_ctx_t ctx;
@@ -723,7 +723,7 @@ double benchmark_flint_fq_nmod_factor(slong degree, slong extension, int num_tes
 
 // Test and verification functions
 
-void test_fq_nmod_correctness() {
+static void test_fq_nmod_correctness() {
     printf("\n=== fq_nmod_poly Correctness Verification Test ===\n");
     
     fq_nmod_ctx_t ctx;
@@ -784,7 +784,7 @@ void test_fq_nmod_correctness() {
     flint_rand_clear(state);
 }
 
-void run_unified_comparison() {
+static void run_unified_comparison() {
     printf("=== Fixed Version Unified CZ Root Finding Algorithm Test ===\n");
     printf("Comparing nmod_poly and fq_nmod_poly versions\n");
     printf("====================================\n");

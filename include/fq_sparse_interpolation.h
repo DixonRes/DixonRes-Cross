@@ -77,7 +77,4 @@ void ComputePolyMatrixDet(nmod_mpoly_t det_poly,
 void myrandpoly(nmod_mpoly_t f, slong n, slong T, slong D,
                 nmod_t mod, const nmod_mpoly_ctx_t mctx);
 
-void test_random_polynomial(void);
-int huang_test(void);
-
 #endif

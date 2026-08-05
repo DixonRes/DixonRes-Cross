@@ -41,10 +41,6 @@
 #define DEBUG_PRINT(fmt, ...)
 #endif
 
-// Dixon resultant computation function
-void fq_dixon_resultant(fq_mvpoly_t *result, fq_mvpoly_t *polys, 
-                       slong nvars, slong npars);
-
 // Token type definitions
 typedef enum {
     TOK_NUMBER,      // number
@@ -130,6 +126,12 @@ char* bivariate_resultant(const char *poly1_str, const char *poly2_str,
 char* dixon_str(const char *poly_string,    // comma-separated polynomials
                 const char *vars_string,     // comma-separated variables
                 const fq_nmod_ctx_t ctx);
+
+/* Compute a finite-field resultant without serializing it to a string. */
+int dixon_compute_result_poly(const char *poly_string,
+                              const char *vars_string,
+                              const fq_nmod_ctx_t ctx,
+                              fq_mvpoly_t *result_poly);
 
 char* dixon_str_with_file(const char *poly_string,    // comma-separated polynomials
                           const char *vars_string,     // comma-separated variables
