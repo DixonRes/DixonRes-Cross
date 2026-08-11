@@ -18,7 +18,7 @@ option(DRSOLVE_BUILD_SHARED_LIB "Build libdrsolve as a shared library"      ON)
 option(DRSOLVE_BUILD_STATIC_LIB "Build libdrsolve as a static library"      ON)
 option(DRSOLVE_BUILD_GUI        "Build Windows GUI targets (Windows only)" ON)
 option(DRSOLVE_BUILD_ATTACK     "Build programs in ../Attack if present"  ON)
-option(DRSOLVE_USE_BUNDLED_DEPS "Use bundled third-party dependencies (cross-compile only)" ON)
+option(DRSOLVE_USE_BUNDLED_DEPS "Use bundled third-party dependencies (cross-compile only)" OFF)
 
 # Hint paths exposed to the user  (override via -DFLINT_ROOT=... etc.)
 set(FLINT_ROOT ""   CACHE PATH "Root directory of FLINT installation")
@@ -256,7 +256,9 @@ set(_flint_include_hints
 set(_flint_lib_hints
   "${FLINT_ROOT}/lib"
 )
-if(DRSOLVE_WINDOWS)
+if(DRSOLVE_WINDOWS AND DRSOLVE_USE_BUNDLED_DEPS)
+  # Keep repository-local headers out of normal Windows builds.  Cross builds
+  # with bundled dependencies explicitly opt in via DRSOLVE_USE_BUNDLED_DEPS.
   list(PREPEND _flint_include_hints
     "${CMAKE_SOURCE_DIR}/mingw/include"
   )

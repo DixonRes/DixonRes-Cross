@@ -276,7 +276,8 @@ jobs:
 
   # ──────────────────────────────────────────────────────────────
   # Windows: cross-compile from Linux via MinGW-w64
-      # Uses bundled mingw/ and pml_det/ dependencies — build + smoke-test
+  # Downloads MSYS2 dependencies into the build directory; does not use
+  # repository-local mingw/ headers.
   # No binary upload (Windows installer handled separately)
   # ──────────────────────────────────────────────────────────────
   build-windows:
@@ -297,6 +298,7 @@ jobs:
         run: |
           cmake -B build-win \
             -DCMAKE_TOOLCHAIN_FILE="$(pwd)/cmake/toolchain-mingw64.cmake" \
+            -DCMAKE_BUILD_TYPE=Release \
             -DDRSOLVE_USE_BUNDLED_DEPS=OFF
 
       - name: Build

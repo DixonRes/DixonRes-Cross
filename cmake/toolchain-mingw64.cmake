@@ -47,10 +47,11 @@ set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY BOTH)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE BOTH)
 set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE BOTH) 
 
-# The project bundles Windows cross-build deps in mingw/ and pml_det/
-# These paths are set automatically by CMakeLists.txt when
-# DRSOLVE_WINDOWS is true and the user has not set explicit roots.
-# Override here if needed:
+# CMake normally obtains Windows dependencies externally when configured with
+# -DDRSOLVE_USE_BUNDLED_DEPS=OFF.  Repository-local mingw/ paths are used only
+# when DRSOLVE_USE_BUNDLED_DEPS=ON.
+# To opt into a local prebuilt dependency tree, override here or at configure
+# time:
 #
 #   set(FLINT_ROOT "${CMAKE_SOURCE_DIR}/mingw")
 #   set(PML_ROOT   "${CMAKE_SOURCE_DIR}/pml_det")
