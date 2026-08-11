@@ -303,7 +303,7 @@ if(FLINT_FOUND AND TARGET FLINT::flint)
 else()
   # 2. Manual detection
   if(DRSOLVE_WINDOWS AND FLINT_INCLUDE_DIR)
-    if(NOT EXISTS "${FLINT_INCLUDE_DIR}/flint/flint.h" OR NOT EXISTS "${FLINT_INCLUDE_DIR}/gmp.h")
+    if(NOT EXISTS "${FLINT_INCLUDE_DIR}/flint/flint.h")
       unset(FLINT_INCLUDE_DIR CACHE)
     endif()
   endif()
@@ -345,23 +345,48 @@ else()
   )
 endif()
 
-# FLINT always needs HAVE_FLINT defined
-target_compile_definitions(FLINT::FLINT INTERFACE HAVE_FLINT)
-
 # ============================================================
 # Find GMP and MPFR  (FLINT runtime deps)
 # ============================================================
+find_path(GMP_INCLUDE_DIR
+  NAMES gmp.h
+  HINTS ${_flint_include_hints}
+)
+find_path(MPFR_INCLUDE_DIR
+  NAMES mpfr.h
+  HINTS ${_flint_include_hints}
+)
 find_library(GMP_LIBRARY   NAMES gmp
   HINTS ${_flint_lib_hints})
 find_library(MPFR_LIBRARY  NAMES mpfr
   HINTS ${_flint_lib_hints})
 
+if(NOT GMP_INCLUDE_DIR)
+  message(FATAL_ERROR "gmp.h not found (required by FLINT).")
+endif()
+if(NOT MPFR_INCLUDE_DIR)
+  message(FATAL_ERROR "mpfr.h not found (required by FLINT).")
+endif()
 if(NOT GMP_LIBRARY)
   message(FATAL_ERROR "libgmp not found (required by FLINT).")
 endif()
 if(NOT MPFR_LIBRARY)
   message(FATAL_ERROR "libmpfr not found (required by FLINT).")
 endif()
+
+# FLINT's public headers include GMP/MPFR headers directly.  Carry their
+# include directories through the imported FLINT target so consumers such as
+# the bundled PML sources see them as well.
+if(TARGET FLINT::flint)
+  set(_flint_target FLINT::flint)
+else()
+  set(_flint_target FLINT::FLINT)
+endif()
+target_compile_definitions(${_flint_target} INTERFACE HAVE_FLINT)
+target_include_directories(${_flint_target} INTERFACE
+  "${GMP_INCLUDE_DIR}"
+  "${MPFR_INCLUDE_DIR}"
+)
 
 # ============================================================
 # Find OpenBLAS  (Windows only, optional on others)
