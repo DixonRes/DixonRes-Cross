@@ -56,8 +56,10 @@ LDFLAGS = $(LTO_LDFLAGS) $(OPENMP_LDFLAGS) $(ASAN_LDFLAGS)
 # Local directories
 # ============================================================
 SRC_DIR = src
-INCLUDE_DIR = include
+APPS_DIR = apps
 BUILD_DIR = build
+VERSION_FILE = VERSION
+DRSOLVE_VERSION = $(shell sed -n '1p' $(VERSION_FILE))
 
 # ============================================================
 # Bundled PML determinant subset (force use of pml_det over any system PML)
@@ -132,7 +134,7 @@ INSTALL_DIR     ?= $(INSTALL) -d -m 755
 # ============================================================
 # Combined CFLAGS
 # ============================================================
-ALL_CFLAGS = $(CFLAGS) $(INCLUDE_FLAGS) $(FLINT_FLAGS) $(PML_FLAGS)
+ALL_CFLAGS = $(CFLAGS) $(INCLUDE_FLAGS) $(FLINT_FLAGS) $(PML_FLAGS) -I$(SRC_DIR) -I$(APPS_DIR) -DPROGRAM_VERSION=\"$(DRSOLVE_VERSION)\"
 
 # ============================================================
 # External library sets
@@ -144,40 +146,40 @@ EXTERNAL_STATIC_ALL_LIBS = $(PML_STATIC_LIBS) $(FLINT_STATIC_LIBS) \
 # ============================================================
 # Source files for the math library (in src directory)
 # ============================================================
-MATH_SOURCES = $(SRC_DIR)/dixon_complexity.c \
-               $(SRC_DIR)/dixon_recursive.c \
-               $(SRC_DIR)/dixon_flint.c \
-               $(SRC_DIR)/dixon_interface_flint.c \
-               $(SRC_DIR)/dixon_test.c \
-               $(SRC_DIR)/dixon_with_ideal_reduction.c \
-               $(SRC_DIR)/fq_mat_det.c \
-               $(SRC_DIR)/macaulay_flint.c \
-               $(SRC_DIR)/fq_mpoly_mat_det.c \
-               $(SRC_DIR)/fq_multivariate_interpolation.c \
-               $(SRC_DIR)/fq_mvpoly.c \
-               $(SRC_DIR)/fq_nmod_roots.c \
-               $(SRC_DIR)/fq_poly_mat_det.c \
-               $(SRC_DIR)/fq_sparse_interpolation.c \
-               $(SRC_DIR)/fq_unified_interface.c \
-               $(SRC_DIR)/gf2n_mpoly.c \
-               $(SRC_DIR)/gf2n_field.c \
-               $(SRC_DIR)/gf2n_poly.c \
-               $(SRC_DIR)/large_prime_system_solver.c \
-               $(SRC_DIR)/polynomial_system_solver.c \
-               $(SRC_DIR)/resultant_with_ideal_reduction.c \
-               $(SRC_DIR)/unified_mpoly_det.c \
-               $(SRC_DIR)/unified_mpoly_interface.c \
-               $(SRC_DIR)/unified_mpoly_resultant.c \
-               $(SRC_DIR)/fmpq_acb_roots.c \
-               $(SRC_DIR)/complex_solver.c \
-               $(SRC_DIR)/rational_system_solver.c
+MATH_SOURCES = $(SRC_DIR)/dixon/dixon_complexity.c \
+               $(SRC_DIR)/dixon/dixon_recursive.c \
+               $(SRC_DIR)/dixon/dixon_flint.c \
+               $(SRC_DIR)/dixon/dixon_interface_flint.c \
+               $(SRC_DIR)/dixon/dixon_test.c \
+               $(SRC_DIR)/dixon/dixon_with_ideal_reduction.c \
+               $(SRC_DIR)/determinant/fq_mat_det.c \
+               $(SRC_DIR)/determinant/fq_mpoly_mat_det.c \
+               $(SRC_DIR)/determinant/fq_multivariate_interpolation.c \
+               $(SRC_DIR)/determinant/fq_poly_mat_det.c \
+               $(SRC_DIR)/determinant/fq_sparse_interpolation.c \
+               $(SRC_DIR)/determinant/unified_mpoly_det.c \
+               $(SRC_DIR)/field/fq_mvpoly.c \
+               $(SRC_DIR)/field/fq_unified_interface.c \
+               $(SRC_DIR)/field/gf2n_field.c \
+               $(SRC_DIR)/field/gf2n_mpoly.c \
+               $(SRC_DIR)/field/gf2n_poly.c \
+               $(SRC_DIR)/field/unified_mpoly_interface.c \
+               $(SRC_DIR)/resultant/macaulay_flint.c \
+               $(SRC_DIR)/resultant/resultant_with_ideal_reduction.c \
+               $(SRC_DIR)/resultant/unified_mpoly_resultant.c \
+               $(SRC_DIR)/solver/complex_solver.c \
+               $(SRC_DIR)/solver/fmpq_acb_roots.c \
+               $(SRC_DIR)/solver/fq_nmod_roots.c \
+               $(SRC_DIR)/solver/large_prime_system_solver.c \
+               $(SRC_DIR)/solver/polynomial_system_solver.c \
+               $(SRC_DIR)/solver/rational_system_solver.c
 # Object files (in build directory)
 MATH_OBJECTS = $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(MATH_SOURCES))
 
 # CLI source files. Keep the process entry point separate from the CLI
 # implementation so the executable boundary stays small and testable.
-DIXON_SRC = drsolve.c
-CLI_SOURCES = $(DIXON_SRC) $(SRC_DIR)/drsolve_cli.c
+DIXON_SRC = $(APPS_DIR)/drsolve.c
+CLI_SOURCES = $(DIXON_SRC) $(APPS_DIR)/drsolve_cli.c
 
 # All source files (for LTO compilation)
 ALL_SOURCES = $(CLI_SOURCES) $(MATH_SOURCES)
@@ -352,7 +354,6 @@ install: $(DIXON_TARGET) $(DIXON_STATIC_LIB) $(DIXON_SHARED_LIB)
 	@echo "--- Creating directories ---"
 	$(INSTALL_DIR) "$(DESTDIR)$(BINDIR)"
 	$(INSTALL_DIR) "$(DESTDIR)$(LIBDIR)"
-	$(INSTALL_DIR) "$(DESTDIR)$(INCLUDEDIR)"
 	@echo ""
 	@echo "--- Installing executable: $(DIXON_TARGET) -> $(DESTDIR)$(BINDIR)/ ---"
 	$(INSTALL_PROGRAM) $(DIXON_TARGET) "$(DESTDIR)$(BINDIR)/$(DIXON_TARGET)"
@@ -371,19 +372,12 @@ install: $(DIXON_TARGET) $(DIXON_STATIC_LIB) $(DIXON_SHARED_LIB)
 		ranlib "$(DESTDIR)$(LIBDIR)/$(DIXON_STATIC_LIB)"; \
 	fi
 	@echo ""
-	@echo "--- Installing headers: $(INCLUDE_DIR)/*.h -> $(DESTDIR)$(INCLUDEDIR)/ ---"
-	@for h in $(INCLUDE_DIR)/*.h; do \
-		if [ -f "$$h" ]; then \
-			echo "  $$h -> $(DESTDIR)$(INCLUDEDIR)/"; \
-			$(INSTALL_DATA) "$$h" "$(DESTDIR)$(INCLUDEDIR)/"; \
-		fi; \
-	done
 	@echo ""
 	@echo "=== Installation complete ==="
 	@echo "  Binary  : $(DESTDIR)$(BINDIR)/$(DIXON_TARGET)"
 	@echo "  Shared  : $(DESTDIR)$(LIBDIR)/$(DIXON_SHARED_LIB)"
 	@echo "  Static  : $(DESTDIR)$(LIBDIR)/$(DIXON_STATIC_LIB)"
-	@echo "  Headers : $(DESTDIR)$(INCLUDEDIR)/"
+	@echo "  Headers : not installed (src/ headers are internal)"
 
 # install-strip: same as install but strips debug symbols from binary and shared lib
 install-strip: $(DIXON_TARGET) $(DIXON_STATIC_LIB) $(DIXON_SHARED_LIB)
@@ -392,17 +386,9 @@ install-strip: $(DIXON_TARGET) $(DIXON_STATIC_LIB) $(DIXON_SHARED_LIB)
 	@echo "Stripping installed shared library..."
 	@strip --strip-unneeded "$(DESTDIR)$(LIBDIR)/$(DIXON_SHARED_LIB)" 2>/dev/null || true
 
-# install-headers: install only the header files (useful for dev packages)
+# install-headers: src/ headers are internal implementation details.
 install-headers:
-	@echo "Installing headers only..."
-	$(INSTALL_DIR) "$(DESTDIR)$(INCLUDEDIR)"
-	@for h in $(INCLUDE_DIR)/*.h; do \
-		if [ -f "$$h" ]; then \
-			echo "  $$h -> $(DESTDIR)$(INCLUDEDIR)/"; \
-			$(INSTALL_DATA) "$$h" "$(DESTDIR)$(INCLUDEDIR)/"; \
-		fi; \
-	done
-	@echo "Headers installed to $(DESTDIR)$(INCLUDEDIR)/"
+	@echo "No public headers are defined; src/ headers are internal."
 
 # uninstall: remove everything that 'make install' put in place
 uninstall:
@@ -416,16 +402,15 @@ uninstall:
 	@if command -v ldconfig >/dev/null 2>&1; then \
 		ldconfig "$(DESTDIR)$(LIBDIR)" 2>/dev/null || true; \
 	fi
-	@echo "--- Removing headers ---"
-	rm -rf "$(DESTDIR)$(INCLUDEDIR)"
 	@echo ""
 	@echo "=== Uninstall complete ==="
 
 # ============================================================
-# Object file compilation (src/*.c -> build/*.o)
+# Object file compilation (src/**/*.c -> build/**/*.o)
 # ============================================================
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR) $(PML_BUILD_PREREQS)
 	@echo "Compiling $<..."
+	@mkdir -p $(dir $@)
 	$(CC) $(ALL_CFLAGS) -c -o $@ $<
 
 # ============================================================
@@ -482,7 +467,7 @@ endif
 	@echo ""
 	@echo "=== Directory Structure ==="
 	@echo "Source directory: $(SRC_DIR)/"
-	@echo "Include directory: $(INCLUDE_DIR)/"
+	@echo "Applications directory: $(APPS_DIR)/"
 	@echo "Build directory: $(BUILD_DIR)/"
 	@echo "Output directory: ./"
 	@echo ""
@@ -616,12 +601,12 @@ debug-structure:
 		echo "NO"; \
 	fi
 	@echo ""
-	@echo "=== Include Directory ($(INCLUDE_DIR)) ==="
+	@echo "=== Applications Directory ($(APPS_DIR)) ==="
 	@echo -n "Directory exists: "
-	@if [ -d "$(INCLUDE_DIR)" ]; then \
+	@if [ -d "$(APPS_DIR)" ]; then \
 		echo "YES"; \
 		echo "Contents:"; \
-		ls -la $(INCLUDE_DIR) | sed 's/^/  /'; \
+		ls -la $(APPS_DIR) | sed 's/^/  /'; \
 	else \
 		echo "NO"; \
 	fi
@@ -677,8 +662,8 @@ help:
 	@echo "  3. sudo make install - Install to /usr/local"
 	@echo ""
 	@echo "Directory structure:"
-	@echo "  $(SRC_DIR)/          - Source files (.c)"
-	@echo "  $(INCLUDE_DIR)/      - Header files (.h)"
+	@echo "  $(SRC_DIR)/          - Core sources and internal headers"
+	@echo "  $(APPS_DIR)/         - CLI and platform frontend sources"
 	@echo "  $(BUILD_DIR)/        - Object files (.o) [created during build]"
 	@echo "  ./               - Executables and libraries"
 	@echo ""
@@ -690,7 +675,7 @@ help:
 	@echo ""
 	@echo "Library structure:"
 	@echo "  drsolve library: $(words $(MATH_SOURCES)) math source files"
-	@echo "  CLI: drsolve.c + src/drsolve_cli.c link against drsolve library OR compile with all sources"
+	@echo "  CLI: apps/drsolve.c + apps/drsolve_cli.c link against drsolve library OR compile with all sources"
 	@echo "  External deps: FLINT (required), PML determinant subset (bundled from pml_det when present)"
 	@echo ""
 	@echo "PML Detection:"

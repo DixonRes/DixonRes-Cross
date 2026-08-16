@@ -1,0 +1,6 @@
+# Flex benchmark over Q: three coupled quadratic forms for Dixon elimination.
+t3,t2
+0
+a1*t2^2*t1^2  +b1*t1^2 +2*c1*t2*t1+d1*t2^2+e1,
+a2*t2^2*t3^2 +b2*t2^2 +2*c2*t2*t3+d2*t3^2+e2,
+a3*t3^2*t1^2 +b3*t1^2 +2*c3*t3*t1+d3*t3^2+e3

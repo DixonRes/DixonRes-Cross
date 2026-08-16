@@ -1,7 +1,15 @@
 cmake_minimum_required(VERSION 3.16)
 
+file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" DRSOLVE_VERSION
+  LIMIT_COUNT 1)
+string(REGEX MATCH "^[0-9]+\\.[0-9]+\\.[0-9]+" DRSOLVE_PROJECT_VERSION
+  "${DRSOLVE_VERSION}")
+if(NOT DRSOLVE_PROJECT_VERSION)
+  message(FATAL_ERROR "VERSION must start with MAJOR.MINOR.PATCH")
+endif()
+
 project(drsolve
-  VERSION 0.4.5
+  VERSION ${DRSOLVE_PROJECT_VERSION}
   DESCRIPTION "DRsolve: Dixon Resultant & Polynomial System Solver"
   LANGUAGES C
 )
@@ -590,41 +598,40 @@ list(APPEND _drsolve_deps ${_sys_libs})
 # Math source list  (shared between library and exe targets)
 # ============================================================
 set(MATH_SOURCES
-  src/dixon_complexity.c
-  src/dixon_recursive.c
-  src/dixon_flint.c
-  src/dixon_interface_flint.c
-  src/dixon_test.c
-  src/dixon_with_ideal_reduction.c
-  src/fq_mat_det.c
-  src/macaulay_flint.c
-  src/fq_mpoly_mat_det.c
-  src/fq_multivariate_interpolation.c
-  src/fq_mvpoly.c
-  src/fq_nmod_roots.c
-  src/fq_poly_mat_det.c
-  src/fq_sparse_interpolation.c
-  src/fq_unified_interface.c
-  src/fmpq_acb_roots.c
-  src/complex_solver.c
-  src/gf2n_mpoly.c
-  src/gf2n_field.c
-  src/gf2n_poly.c
-  src/large_prime_system_solver.c
-  src/polynomial_system_solver.c
-  src/rational_system_solver.c
-  src/resultant_with_ideal_reduction.c
-  src/unified_mpoly_det.c
-  src/unified_mpoly_interface.c
-  src/unified_mpoly_resultant.c
+  src/dixon/dixon_complexity.c
+  src/dixon/dixon_recursive.c
+  src/dixon/dixon_flint.c
+  src/dixon/dixon_interface_flint.c
+  src/dixon/dixon_test.c
+  src/dixon/dixon_with_ideal_reduction.c
+  src/determinant/fq_mat_det.c
+  src/determinant/fq_mpoly_mat_det.c
+  src/determinant/fq_multivariate_interpolation.c
+  src/determinant/fq_poly_mat_det.c
+  src/determinant/fq_sparse_interpolation.c
+  src/determinant/unified_mpoly_det.c
+  src/field/fq_mvpoly.c
+  src/field/fq_unified_interface.c
+  src/field/gf2n_field.c
+  src/field/gf2n_mpoly.c
+  src/field/gf2n_poly.c
+  src/field/unified_mpoly_interface.c
+  src/resultant/macaulay_flint.c
+  src/resultant/resultant_with_ideal_reduction.c
+  src/resultant/unified_mpoly_resultant.c
+  src/solver/complex_solver.c
+  src/solver/fmpq_acb_roots.c
+  src/solver/fq_nmod_roots.c
+  src/solver/large_prime_system_solver.c
+  src/solver/polynomial_system_solver.c
+  src/solver/rational_system_solver.c
 )
 
 # Convenience function: apply standard settings to a drsolve target
 function(drsolve_target_common _tgt)
-  target_include_directories(${_tgt} PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+  target_include_directories(${_tgt} PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pml_det>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/drsolve>
   )
   target_link_libraries(${_tgt} PUBLIC ${_drsolve_deps})
   target_compile_options(${_tgt} PRIVATE
@@ -691,8 +698,8 @@ endif()
 # the top-level drsolve.exe is a thin launcher (built below).
 # ============================================================
 set(CLI_SOURCES
-  drsolve.c
-  src/drsolve_cli.c
+  apps/drsolve.c
+  apps/drsolve_cli.c
 )
 
 # Keep the CLI sources outside libdrsolve; the executable compiles the math
@@ -703,6 +710,10 @@ add_executable(drsolve_exe
   ${MATH_SOURCES}
 )
 drsolve_target_common(drsolve_exe)
+target_include_directories(drsolve_exe PRIVATE ${CMAKE_SOURCE_DIR}/apps)
+target_compile_definitions(drsolve_exe PRIVATE
+  PROGRAM_VERSION="${DRSOLVE_VERSION}"
+)
 
 if(DRSOLVE_WINDOWS)
   set_target_properties(drsolve_exe PROPERTIES
@@ -758,7 +769,7 @@ endif()
 if(DRSOLVE_WINDOWS AND DRSOLVE_BUILD_GUI)
 
   # Thin launcher: sets DLL path then spawns bin/drsolve_cli_real.exe
-  add_executable(drsolve_launcher win_gui/dixon_launcher.c)
+  add_executable(drsolve_launcher apps/win_gui/dixon_launcher.c)
   target_compile_definitions(drsolve_launcher PRIVATE _WIN32_WINNT=0x0601)
   set_target_properties(drsolve_launcher PROPERTIES
     OUTPUT_NAME              "drsolve"
@@ -767,8 +778,8 @@ if(DRSOLVE_WINDOWS AND DRSOLVE_BUILD_GUI)
 
   # Windows GUI frontend
   add_executable(drsolve_win_gui WIN32
-    win_gui/dixon_gui.c
-    win_gui/dixon_wrapper.c
+    apps/win_gui/dixon_gui.c
+    apps/win_gui/dixon_wrapper.c
   )
   target_compile_definitions(drsolve_win_gui PRIVATE _WIN32_WINNT=0x0601)
   target_link_libraries(drsolve_win_gui PRIVATE comctl32 comdlg32 shlwapi)
@@ -867,11 +878,7 @@ if(DRSOLVE_BUILD_SHARED_LIB AND NOT DRSOLVE_STATIC)
   endif()
 endif()
 
-# Headers
-install(DIRECTORY include/
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/drsolve
-  FILES_MATCHING PATTERN "*.h"
-)
+# Headers in src/ are internal implementation details and are not installed.
 
 # ============================================================
 # CTest

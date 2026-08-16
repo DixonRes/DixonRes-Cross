@@ -11,6 +11,7 @@
 */
 
 #include <stdlib.h> // for qsort
+#include <time.h>
 #include <flint/nmod_poly.h>
 #include "nmod_poly_mat_utils.h"
 #include "nmod_mat_poly.h"
@@ -146,6 +147,28 @@ static inline void _vec_sort_permutation(slong * perm,
     if (sorted_vec)
         for (slong i = 0; i < n; i++)
             sorted_vec[i] = pair_tmp[i].value;
+}
+
+void _nmod_poly_mat_permute_rows_by_sorting_vec_profile(
+    nmod_poly_mat_t mat,
+    slong r,
+    slong * vec,
+    slong * perm,
+    double * sort_time,
+    double * matrix_time)
+{
+    slong_pair * tmp = flint_malloc(r * sizeof(slong_pair));
+    const double sort_start = sort_time ? ((double) clock()) / CLOCKS_PER_SEC : 0.0;
+    _vec_sort_permutation(perm, vec, vec, r, tmp);
+    for (slong i = r; i < mat->r; i++)
+        perm[i] = i;
+    if (sort_time)
+        *sort_time += ((double) clock()) / CLOCKS_PER_SEC - sort_start;
+    flint_free(tmp);
+    const double matrix_start = matrix_time ? ((double) clock()) / CLOCKS_PER_SEC : 0.0;
+    nmod_poly_mat_permute_rows_inplace(mat, perm);
+    if (matrix_time)
+        *matrix_time += ((double) clock()) / CLOCKS_PER_SEC - matrix_start;
 }
 
 void _nmod_poly_mat_permute_rows_by_sorting_vec(nmod_poly_mat_t mat,

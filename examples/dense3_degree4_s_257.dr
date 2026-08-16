@@ -1,0 +1,5 @@
+# Dense 3-variable quartic system over F_257: dense high-degree solve benchmark.
+257
+x^4+2*x^3*y+3*x^2*y^2+x*y^3+y^4+2*x^2*z+5*x*y*z+3*y^2*z+z^2-7,
+2*x^4+x^3*y+4*x^2*z^2+3*x*y^2*z+2*y^4+y^2*z^2+z^4+x*y+2*z-3,
+x^4+3*x^3*z+2*x^2*y^2+5*x^2*y*z+x*y^3+4*x*y*z^2+2*y^4+z^4-11

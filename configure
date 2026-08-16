@@ -656,7 +656,7 @@ fi
 # Compute derived variables (mirrors original Makefile logic)
 # ============================================================
 # Include flags
-INCLUDE_FLAGS="-I./include"
+INCLUDE_FLAGS="-I./src -I./apps"
 if [ "$PML_AVAILABLE" = "yes" ]; then
     INCLUDE_FLAGS="-I$PML_SOURCE_DIR -I$PML_INCLUDE_PATH $INCLUDE_FLAGS"
 fi

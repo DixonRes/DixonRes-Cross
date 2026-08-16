@@ -3,9 +3,11 @@ A C implementation for computing Dixon resultants and solving polynomial systems
 
 Website: <https://drsolve.github.io>
 
+Author: Haohai Suo (<haohai.suo@mail.sdu.edu.cn>)
+
 ## Features
 - Dixon resultant computation for variable elimination
-- Polynomial system solver for n×n systems
+- Polynomial system solver
 - Finite fields:
   - Prime fields F_p (any size): Implemented with FLINT modular arithmetic, optionally accelerated by PML.
   - Extension fields F_{p^k}: Further optimized for binary fields F_{2^n} with n in {8, 16, 32, 64, 128}.
@@ -41,6 +43,11 @@ make install                       # optional
 ```
 For more options, run `./configure --help` or `make help`.
 
+We also provide a Windows GUI, which can be built with CMake.
+```bash
+cmake -B build-win -DCMAKE_TOOLCHAIN_FILE="$(pwd)/cmake/toolchain-mingw64.cmake"
+cmake --build build-win -j$(nproc)
+```
 ---
 
 ## Usage
@@ -54,33 +61,6 @@ Example:
 ```bash
 ./drsolve "x+y+z, x*y+y*z+z*x, x*y*z+1" "x,y" 257
 ```
-- `--resultant-only` (alias `--no-roots`) skips root analysis over rational and
-  finite fields. Resultants with fewer than 100 terms are also printed; larger
-  resultants are written only to the result file:
-  ```bash
-  ./drsolve --resultant-only "x^2+y^2-1, x-y" "x" 0
-  ./drsolve --resultant-only "x+y, x-y" "x" 257
-  ```
-- Rational reconstruction parallelizes independent modular-prime images first.
-  With `--threads n`, a batch of `k` prime tasks gives each task
-  `max(1, floor(n/k))` internal threads.
-- `--approx-roots` converts the reconstructed rational coefficients to Arb
-  approximations before root finding. The default precision is 128 bits and
-  can be changed with `--root-precision`; root intervals and residual intervals
-  are reported without automatic precision escalation:
-  ```bash
-  ./drsolve --threads 16 --approx-roots --root-precision 256 \
-    "x+y, x-y^2+2" "x" 0
-  ```
-- Without `--complex`, rational resultants use FLINT's dedicated
-  `arb_fmpz_poly_real_roots` path after clearing denominators and squarefree
-  factorization. With `--complex`, the Acb all-complex-roots path is retained.
-  Both default and approximate real-root modes report a dimensionless normalized
-  residual interval, scaling by `sum |a_i| max(1, |x|)^i` so large reconstructed
-  integer coefficients do not make the residual unreadable.
-- Rational numeric back-substitution compiles polynomial strings once, evaluates
-  analytic Jacobians by reverse automatic differentiation, and tries sparse
-  axis seeds before falling back to the full Cartesian seed grid.
 - Default output file: `out/solution_YYYYMMDD_HHMMSS.dr`
 
 #### Polynomial system solver
@@ -100,23 +80,21 @@ Example:
 ./drsolve -f input_file -o output_file
 ```
 #### Dixon resultant elimination (multiline)
-```
+``` 
 Line 1 : variables to ELIMINATE (comma-separated)
 Line 2 : field size (prime or p^k; use 0 for Q; generator defaults to 't')
-Line 3+: polynomials (comma-separated, may span multiple lines)
-         (#eliminate = #equations - 1)
+Line 3+: polynomials (comma-separated, may span multiple lines, #eliminate = #equations - 1)
 ```
 Example:
 ```bash
-# example.dr
 x0,x1
 257
 x0^3+x1^3+x2^3, x0*x1+x1*x2+x2*x1, x1*x2*x0+1
 ```
 Run:
 ```bash
-./drsolve example.dr
-./drsolve -f example.dr -o my_result.dr
+./drsolve examples/example.dr
+./drsolve -f examples/example.dr -o out/my_result.dr
 ```
 - If line 1 lists `n` variables for `n` equations, compatibility mode uses the first `n-1` variables
 
@@ -124,18 +102,16 @@ Run:
 ```
 Line 1 : field size
 Line 2+: polynomials (comma-separated, may span multiple lines)
-         (n equations in n variables)
 ```
 Example:
 ```bash
-# example_solve.dr
 0
 x^2+y^2+z^2-6, x+y+z-4, x*y*z-x-1
 ```
 Run:
 ```bash
-./drsolve example_solve.dr
-./drsolve -f example_solve.dr -o my_solutions.dr
+./drsolve examples/example_solve.dr
+./drsolve -f examples/example_solve.dr -o out/my_solutions.dr
 ```
 
 ### OTHER MODES
@@ -180,8 +156,7 @@ Generate random polynomial systems for testing and benchmarking.
 ./drsolve -r -c    "[d]*n"         field_size
 ```
 - Add `-n <num_vars>` to set the variable count
-- Add `--density <ratio>` with `0 <= ratio <= 1` (default: `0.5` over F2, otherwise `1`)
-- Add `--homogeneous` (alias `--hom`) to generate each polynomial using only monomials of its requested total degree
+- Add `--density <ratio>` with `0 <= ratio <= 1`
 - Add `--seed <num>` for reproducible random systems
 - Mixed degree specifications such as `"[2]*5+[3]*6"` are supported
 
@@ -191,7 +166,6 @@ Examples:
 ./drsolve -r "[3]*3" 0
 ./drsolve -r -n 4 --density 0.5 "[3]*3" 257
 ./drsolve -r --seed 12345 "[3]*3" 257
-./drsolve -r --homogeneous --density 0.5 "[3]*3" 257
 ./drsolve -r "[2]*4+[3]*2" 257
 ./drsolve -r -s "[2]*3" 257
 ./drsolve -r --comp --omega 2.373 "[4]*4" 257
@@ -246,25 +220,16 @@ Example:
 #### Verbosity
 ```bash
 ./drsolve -v 0 <arguments>
-./drsolve -v 1 <arguments>
 ./drsolve -v 2 <arguments>
-./drsolve -v 3 <arguments>
+./drsolve --time <args>
+
 ```
-`-v 0` prints nothing but still writes the output file. `-v 1` is the default. `-v 2` restores the debug-level console output and timing. `-v 3` additionally dumps small intermediate matrices.
+`-v 0` prints nothing but still writes the output file. `-v 1` is the default. `-v 2` restores the debug-level console output and timing. `-v 3` prints detailed profiling for Dixon construction. `-v 4` additionally prints the cancellation matrix, Dixon matrix, maximal-rank submatrix when each is <= 100 x 100. `--time` prints per-step timing
 
 Example:
 ```bash
 ./drsolve -v 2 -f in.dr -o out.dr
 ```
-
-#### Diagnostics
-```bash
-./drsolve --time <args>
-./drsolve -v 2 <args>
-```
-- `--time` prints per-step timing
-- Compatibility flags `--silent`, `--debug`, `--solve-verbose`, and `--solve` are still accepted
-
 
 #### Parallelism
 ```bash
@@ -276,34 +241,24 @@ Example:
 
 ## SageMath Interface
 
-`drsolve_sage_interface.sage` lets you call DRSolve directly from SageMath with Sage polynomial objects.
+`drsolve_sage_interface.sage` lets you call DRsolve directly from SageMath with Sage polynomial objects.
 
-- Load the interface with `load("drsolve_sage_interface.sage")`, then set the binary path once with `set_dixon_path("./drsolve")`.
+- Load the interface with `load("drsolve_sage_interface.sage")`, then set the binary path once with `set_drsolve_path("./drsolve")`.
 - Main entry points:
   - `DixonRes(F, elim_vars, ...)` / `DixonResultant(...)`
   - `DixonSolve(F, ...)`
   - `DixonComplexity(F, elim_vars, ...)`
   - `DixonIdeal(F, ideal_gens, elim_vars, ...)`
-- Common options include `field_size`, `verbosity`, `time`, `threads`, `debug`, `live_output`, and `timeout`.
+- Common options include `field_size`, `verbosity`, `time`, `threads`, `debug`, `live_output`, `timeout`, and `output_dir`.
+- Sage interface calls now keep autogenerated output files in `./out/` by default. Use `set_drsolve_output_dir("results")` once, `output_dir="results"` for one call, or `foutput="results/result.dr"` for an exact filename.
 - `field_size` may be an integer prime, a string such as `"2^8"` or `"2^8: t^8+t^4+t^3+t+1"`, a Sage `GF(...)` object, or `0` for ℚ. If omitted, it is inferred from the Sage polynomial ring when possible.
 - Resultants are returned as strings, so iterative elimination works naturally by feeding one `DixonRes(...)` output into the next call.
 - For a fuller Sage reference with examples and options, see the top docstring in `drsolve_sage_interface.sage`.
 
 ---
 
-## Feature Support by Field
-
-| Feature | F_p (p<2^63) | F_p (p>2^63) | F_{p^k} (p<2^63) | Q |
-|---|---|---|---|---|
-| Dixon resultant | ✅ | ✅ | ✅ | ✅ |
-| Complexity analysis (`--comp`) | ✅ | ✅ | ✅ | ✅ |
-| Random mode (`-r`) | ✅ | ✅ | ✅ | ✅ |
-| Polynomial solver (`-s` / `--solve`) | ✅ | ✅ | ✅ | ✅ |
-| Ideal reduction (`--ideal`) | ✅ | ❌ | ✅ | ❌ |
-| Field-equation reduction | ✅ | ❌ | ✅ | ❌ |
-| PML acceleration | ✅ | ✅ | ❌ | ✅ |
-
----
+## Development Notes
+Parts of this project were developed with the assistance of AI-based coding tools. All AI-assisted contributions were reviewed and tested by the project author.
 
 ## License
 DRSolve is distributed under the GNU General Public License version 2.0 (GPL-2.0-or-later). See the file COPYING.

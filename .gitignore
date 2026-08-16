@@ -10,7 +10,6 @@ doc/
 paper/
 scripts/
 attack/
-pml/
 __pycache__/
 
 # Jupyter Notebook checkpoints
@@ -24,6 +23,8 @@ CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
 drsolve
+*.mk
+
 *.cmake
 !cmake/*.cmake
 !cmake/**/*.cmake
@@ -35,7 +36,6 @@ CPackSourceConfig.cmake
 *.lo
 *.o
 *.obj
-*.mk
 
 # Precompiled Headers
 *.gch
@@ -89,3 +89,4 @@ third_party_msys2/
 
 # DLL directory
 dll/
+

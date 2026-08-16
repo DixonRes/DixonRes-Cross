@@ -137,6 +137,14 @@ void _nmod_poly_mat_permute_rows_by_sorting_vec(nmod_poly_mat_t mat,
                                                 slong * vec,
                                                 slong * perm);
 
+void _nmod_poly_mat_permute_rows_by_sorting_vec_profile(
+    nmod_poly_mat_t mat,
+    slong r,
+    slong * vec,
+    slong * perm,
+    double * sort_time,
+    double * matrix_time);
+
 
 
 void _nmod_poly_mat_permute_columns_by_sorting_vec(nmod_poly_mat_t mat,
@@ -287,6 +295,63 @@ nmod_poly_mat_permute_rows(nmod_poly_mat_t mat,
             *nmod_poly_mat_entry(mat, i, j) = mat_tmp[i * mat->c + j];
     flint_free(mat_tmp);
 #endif
+}
+
+/* In-place row permutation for FLINT 3.x matrices. The permutation convention
+ * is rows[i] <- old_rows[perm_act[i]]. Unlike the generic implementation above,
+ * this avoids a full matrix-sized temporary descriptor buffer. */
+NMOD_POLY_MAT_INLINE void
+nmod_poly_mat_permute_rows_inplace(nmod_poly_mat_t mat,
+                                   const slong *perm_act)
+{
+    slong * inverse;
+    unsigned char * done;
+    nmod_poly_struct * tmp;
+    int identity = 1;
+
+    for (slong i = 0; i < mat->r; i++)
+        if (perm_act[i] != i)
+        {
+            identity = 0;
+            break;
+        }
+
+    if (identity)
+        return;
+
+    inverse = flint_malloc(mat->r * sizeof(slong));
+    done = flint_calloc(mat->r, sizeof(unsigned char));
+    tmp = flint_malloc(mat->c * sizeof(nmod_poly_struct));
+
+    for (slong i = 0; i < mat->r; i++)
+        inverse[perm_act[i]] = i;
+
+    for (slong start = 0; start < mat->r; start++)
+    {
+        slong cur;
+
+        if (done[start])
+            continue;
+
+        cur = start;
+        for (slong j = 0; j < mat->c; j++)
+            tmp[j] = *nmod_poly_mat_entry(mat, cur, j);
+
+        do
+        {
+            const slong prev = inverse[cur];
+            for (slong j = 0; j < mat->c; j++)
+                FLINT_SWAP(nmod_poly_struct, tmp[j],
+                           *nmod_poly_mat_entry(mat, prev, j));
+            done[prev] = 1;
+            cur = prev;
+        }
+        while (cur != start);
+    }
+
+    flint_free(tmp);
+    flint_free(done);
+    flint_free(inverse);
 }
 
 /** Permute columns of a polynomial matrix `mat` according to `perm_act`, and

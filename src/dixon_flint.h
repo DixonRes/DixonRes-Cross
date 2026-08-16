@@ -1,0 +1,176 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+#ifndef DIXON_FLINT_H
+#define DIXON_FLINT_H
+
+/*
+ * dixon_flint.h - Complete Dixon Resultant Implementation for Finite Extension Fields
+ *
+ * This header provides functions for computing Dixon resultants over finite fields
+ * using FLINT library for polynomial arithmetic and matrix operations.
+ *
+ * Compile with: gcc -O3 -march=native -o dixon_flint dixon_flint.c -lflint -lmpfr -lgmp -lpthread
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <gmp.h>
+#include <unistd.h>
+#include <ctype.h>
+#include <stdarg.h>
+#include <limits.h>
+#include <sys/time.h>
+
+#include <flint/flint.h>
+#include <flint/ulong_extras.h>
+#include <flint/fq_nmod.h>
+#include <flint/fq_nmod_poly.h>
+#include <flint/fq_nmod_mat.h>
+#include <flint/fq_nmod_mpoly.h>
+#include <flint/nmod_poly.h>
+#include <flint/fmpz.h>
+#include <flint/fmpz_mat.h>
+#include <flint/profiler.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+#include "fq_mvpoly.h"
+#include "fq_mpoly_mat_det.h"
+#include "fq_unified_interface.h"
+#include "dixon_interface_flint.h"
+#include "macaulay_flint.h"
+#include "dixon_complexity.h"
+
+// Debug output control - set to 0 to disable all output
+#define DEBUG_OUTPUT_D 0
+
+#if DEBUG_OUTPUT_D
+    #define DEBUG_PRINT_D(...) printf(__VA_ARGS__)
+#else
+    #define DEBUG_PRINT_D(...) ((void)0)
+#endif
+
+#define DIXON_INTERPOLATION_POINT_LIMIT 100000000L
+
+// Method enumeration for determinant computation
+typedef enum {
+    DET_METHOD_RECURSIVE = 0,     // Minor expansion method
+    DET_METHOD_KRONECKER = 1,     // Kronecker+HNF method
+    DET_METHOD_INTERPOLATION = 2, // Interpolation method
+    DET_METHOD_HUANG = 3,         // sparse interpolation method
+    DET_METHOD_KRONECKER_NMOD = 4, // Bareiss fraction-free elimination on multivariate polynomials
+    DET_METHOD_BALANCED_SPLIT = 6  // Experimental top-level balanced split Laplace expansion
+} det_method_t;
+
+typedef enum {
+    RESULTANT_METHOD_DIXON = 0,
+    RESULTANT_METHOD_MACAULAY = 1,
+    RESULTANT_METHOD_SUBRES = 2,
+    RESULTANT_METHOD_DIXON_RECURSIVE = 3
+} resultant_method_t;
+
+typedef enum {
+    RATIONAL_ROOT_SCAN_AUTO = 0,
+    RATIONAL_ROOT_SCAN_OFF = 1,
+    RATIONAL_ROOT_SCAN_FORCE = 2
+} rational_root_scan_mode_t;
+
+// Global method selection variables
+extern det_method_t dixon_global_method_step1;
+extern det_method_t dixon_global_method_step4;
+extern det_method_t dixon_global_method; // deprecated compatibility alias
+extern resultant_method_t g_resultant_method;
+extern int g_dixon_verbose_level;
+extern int g_dixon_debug_mode;
+extern int g_dixon_show_step_timing;
+extern rational_root_scan_mode_t g_rational_root_scan_mode;
+extern int g_matrix_transpose_threshold;
+extern int g_dixon_fast_use_ksy_precondition;
+extern slong g_dixon_fast_ksy_constant_col;
+extern int g_dixon_step3_second_verification;
+extern slong g_dixon_det_cache_limit;
+
+int dixon_method_uses_parallel_timing(det_method_t method);
+int dixon_get_effective_interpolation_threads(void);
+void dixon_maybe_print_step_time(const char *step_label, double wall_elapsed);
+void dixon_maybe_print_parallel_step_time(const char *step_label,
+                                          double cpu_elapsed,
+                                          double wall_elapsed);
+void dixon_maybe_print_step_method_time(const char *step_label,
+                                        det_method_t method,
+                                        double cpu_elapsed,
+                                        double wall_elapsed);
+
+// Matrix operations
+void build_fq_cancellation_matrix_mvpoly(fq_mvpoly_t ***M, fq_mvpoly_t *polys, 
+                                        slong nvars, slong npars);
+
+void perform_fq_matrix_row_operations_mvpoly(fq_mvpoly_t ***new_matrix, fq_mvpoly_t ***original_matrix,
+                                           slong nvars, slong npars);
+
+// Degree bound computation
+slong compute_fq_dixon_resultant_degree_bound(fq_mvpoly_t *polys, slong npolys, 
+                                             slong nvars, slong npars);
+
+// Coefficient matrix determinant computation
+void compute_fq_coefficient_matrix_det(fq_mvpoly_t *result, fq_mvpoly_t **coeff_matrix,
+                                      slong size, slong npars, const fq_nmod_ctx_t ctx,
+                                      det_method_t method, slong res_deg_bound);
+
+// Maximal rank submatrix finding
+void find_fq_optimal_maximal_rank_submatrix(fq_mvpoly_t ***full_matrix, 
+                                           slong nrows, slong ncols,
+                                           slong **row_indices_out, 
+                                           slong **col_indices_out,
+                                           slong *num_rows, slong *num_cols,
+                                           slong npars,
+                                           slong ksy_constant_col);
+
+// Monomial collection structures and functions
+typedef struct {
+    slong *exp;
+    slong idx;
+} monom_t;
+
+typedef struct hash_entry {
+    slong *exp;
+    slong idx;
+    struct hash_entry *next;
+} hash_entry_t;
+
+// Optimized monomial collection with hash table
+// Lazy matrix entry allocation
+fq_mvpoly_t* get_matrix_entry_lazy(fq_mvpoly_t ***matrix, slong i, slong j,
+                                  slong npars, const fq_nmod_ctx_t ctx);
+
+// Extract coefficient matrix from Dixon polynomial
+void extract_fq_coefficient_matrix_from_dixon(fq_mvpoly_t ***coeff_matrix,
+                                              fq_nmod_poly_mat_t *poly_matrix_out,
+                                              slong *row_indices, slong *col_indices,
+                                             slong *matrix_size,
+                                             slong *extracted_x_power,
+                                             const fq_mvpoly_t *dixon_poly,
+                                              slong nvars, slong npars,
+                                              char **var_names, char **par_names,
+                                              const char *gen_name,
+                                              const long *degrees, slong num_polys);
+
+// Compute determinant of cancellation matrix
+void compute_fq_cancel_matrix_det(fq_mvpoly_t *result, fq_mvpoly_t **modified_M_mvpoly,
+                                 slong nvars, slong npars, det_method_t method);
+
+slong dixon_matrix_size(slong nvars, slong degree, ulong prime, slong field_degree);
+
+// Main Dixon resultant computation function
+void fq_dixon_resultant(fq_mvpoly_t *result, fq_mvpoly_t *polys, 
+                       slong nvars, slong npars);
+
+void fq_dixon_resultant_with_names(fq_mvpoly_t *result, fq_mvpoly_t *polys, 
+                                  slong nvars, slong npars,
+                                  char **var_names, char **par_names, 
+                                  const char *gen_name);
+
+#endif

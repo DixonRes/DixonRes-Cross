@@ -77,10 +77,25 @@ typedef struct
     slong max_dim;
     slong loop_iterations;
     slong rank_defects;
+    slong total_active_rows;
+    slong total_active_cols;
+    slong max_active_rows;
+    slong max_active_cols;
+    slong total_nnz_before;
+    slong total_nnz_after;
+    slong max_nnz_before;
+    slong max_nnz_after;
+    slong total_coeffs_before;
+    slong total_coeffs_after;
+    slong max_coeffs_before;
+    slong max_coeffs_after;
     double total_time;
     double weak_popov_time;
     double permute_time;
+    double permute_sort_time;
+    double permute_matrix_time;
     double diagonal_product_time;
+    double structure_scan_time;
 } nmod_poly_mat_det_iter_profile_t;
 
 static nmod_poly_mat_det_hnf_profile_t g_nmod_det_hnf_profile;
@@ -154,8 +169,48 @@ _nmod_det_iter_profile_print(void)
     printf("    calls=%ld loop_iterations=%ld rank_defects=%ld max_dim=%ld avg_dim=%.2f\n",
            p->calls, p->loop_iterations, p->rank_defects, p->max_dim,
            (p->calls > 0) ? ((double) p->total_dim / (double) p->calls) : 0.0);
-    printf("    total=%.6fs weak_popov=%.6fs permute=%.6fs diagonal_product=%.6fs\n",
-           p->total_time, p->weak_popov_time, p->permute_time, p->diagonal_product_time);
+    printf("    total=%.6fs weak_popov=%.6fs permute=%.6fs (sort=%.6fs matrix=%.6fs) diagonal_product=%.6fs\n",
+           p->total_time, p->weak_popov_time, p->permute_time,
+           p->permute_sort_time, p->permute_matrix_time,
+           p->diagonal_product_time);
+    printf("    active_avg=%.2fx%.2f active_max=%ldx%ld structure_scan=%.6fs\n",
+           (p->loop_iterations > 0) ?
+               ((double) p->total_active_rows / (double) p->loop_iterations) : 0.0,
+           (p->loop_iterations > 0) ?
+               ((double) p->total_active_cols / (double) p->loop_iterations) : 0.0,
+           p->max_active_rows, p->max_active_cols, p->structure_scan_time);
+    printf("    nnz_before_avg=%.2f nnz_after_avg=%.2f nnz_max=%ld/%ld coeffs_before_avg=%.2f coeffs_after_avg=%.2f coeffs_max=%ld/%ld\n",
+           (p->loop_iterations > 0) ?
+               ((double) p->total_nnz_before / (double) p->loop_iterations) : 0.0,
+           (p->loop_iterations > 0) ?
+               ((double) p->total_nnz_after / (double) p->loop_iterations) : 0.0,
+           p->max_nnz_before, p->max_nnz_after,
+           (p->loop_iterations > 0) ?
+               ((double) p->total_coeffs_before / (double) p->loop_iterations) : 0.0,
+           (p->loop_iterations > 0) ?
+               ((double) p->total_coeffs_after / (double) p->loop_iterations) : 0.0,
+           p->max_coeffs_before, p->max_coeffs_after);
+}
+
+static void
+_nmod_det_iter_structure_stats(const nmod_poly_mat_t mat,
+                               slong rows,
+                               slong cols,
+                               slong *nnz,
+                               slong *coeffs)
+{
+    *nnz = 0;
+    *coeffs = 0;
+    for (slong i = 0; i < rows; i++)
+        for (slong j = 0; j < cols; j++)
+        {
+            const nmod_poly_struct *p = nmod_poly_mat_entry(mat, i, j);
+            if (!nmod_poly_is_zero(p))
+            {
+                (*nnz)++;
+                (*coeffs) += p->length;
+            }
+        }
 }
 
 static slong
@@ -1148,6 +1203,30 @@ void nmod_poly_mat_det_iter(nmod_poly_t det, nmod_poly_mat_t mat)
 
     for (slong i = mat->r -1; i >= 1; i--)
     {
+        slong nnz_before = 0;
+        slong coeffs_before = 0;
+        slong nnz_after = 0;
+        slong coeffs_after = 0;
+        double structure_t0 = collect_profile ? _nmod_det_now_seconds() : 0.0;
+
+        if (collect_profile)
+        {
+            _nmod_det_iter_structure_stats(view, i + 1, i,
+                                           &nnz_before, &coeffs_before);
+            g_nmod_det_iter_profile.total_active_rows += i + 1;
+            g_nmod_det_iter_profile.total_active_cols += i;
+            if (i + 1 > g_nmod_det_iter_profile.max_active_rows)
+                g_nmod_det_iter_profile.max_active_rows = i + 1;
+            if (i > g_nmod_det_iter_profile.max_active_cols)
+                g_nmod_det_iter_profile.max_active_cols = i;
+            g_nmod_det_iter_profile.total_nnz_before += nnz_before;
+            g_nmod_det_iter_profile.total_coeffs_before += coeffs_before;
+            if (nnz_before > g_nmod_det_iter_profile.max_nnz_before)
+                g_nmod_det_iter_profile.max_nnz_before = nnz_before;
+            if (coeffs_before > g_nmod_det_iter_profile.max_coeffs_before)
+                g_nmod_det_iter_profile.max_coeffs_before = coeffs_before;
+        }
+
         double t0 = collect_profile ? _nmod_det_now_seconds() : 0.0;
         //            [ V  * ]                 [ V ]
         // mat is now [ 0  D ] and view is now [ 0 ] of size mat->r x (i+1),
@@ -1165,6 +1244,17 @@ void nmod_poly_mat_det_iter(nmod_poly_t det, nmod_poly_mat_t mat)
         {
             g_nmod_det_iter_profile.loop_iterations++;
             g_nmod_det_iter_profile.weak_popov_time += _nmod_det_now_seconds() - t0;
+
+            _nmod_det_iter_structure_stats(view, i + 1, i,
+                                           &nnz_after, &coeffs_after);
+            g_nmod_det_iter_profile.total_nnz_after += nnz_after;
+            g_nmod_det_iter_profile.total_coeffs_after += coeffs_after;
+            if (nnz_after > g_nmod_det_iter_profile.max_nnz_after)
+                g_nmod_det_iter_profile.max_nnz_after = nnz_after;
+            if (coeffs_after > g_nmod_det_iter_profile.max_coeffs_after)
+                g_nmod_det_iter_profile.max_coeffs_after = coeffs_after;
+            g_nmod_det_iter_profile.structure_scan_time +=
+                _nmod_det_now_seconds() - structure_t0;
         }
 
         // early exit if rank-deficient
@@ -1178,7 +1268,20 @@ void nmod_poly_mat_det_iter(nmod_poly_t det, nmod_poly_mat_t mat)
 
         // permute into ordered weak Popov form
         t0 = collect_profile ? _nmod_det_now_seconds() : 0.0;
-        _nmod_poly_mat_permute_rows_by_sorting_vec(view, rk, pivind, perm);
+        if (collect_profile)
+        {
+            double sort_time = 0.0;
+            double matrix_time = 0.0;
+            _nmod_poly_mat_permute_rows_by_sorting_vec_profile(
+                view, rk, pivind, perm, &sort_time, &matrix_time);
+            g_nmod_det_iter_profile.permute_sort_time += sort_time;
+            g_nmod_det_iter_profile.permute_matrix_time += matrix_time;
+        }
+        else
+        {
+            _nmod_poly_mat_permute_rows_by_sorting_vec_profile(
+                view, rk, pivind, perm, NULL, NULL);
+        }
         _nmod_poly_mat_window_resize_columns(view, -1);
         if (_perm_parity(perm, rk)) // odd permutation, negate udet
             udet = -udet;
